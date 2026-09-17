@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PQA Builder</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📑</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root{
+  --bg:#11140f; --panel:#181c15; --panel2:#1f2419; --line:#2c3325; --line2:#394232;
+  --ink:#e8ecdf; --muted:#8e9884; --dim:#5f6857;
+  --teal:#2fb5a5; --teal2:#1d7f74; --lime:#b8e04a; --amber:#f0b429; --red:#ef5b4c;
+  --r:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Archivo,system-ui,sans-serif;font-size:14px}
+button,input,select{font:inherit;color:inherit}
+.mono{font-family:"Space Mono",ui-monospace,monospace}
+header{position:sticky;top:0;z-index:20;background:rgba(17,20,15,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.hwrap{max-width:1400px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.02em}
+.brand .tag{font-family:"Space Mono";font-size:11px;color:var(--lime);border:1px solid var(--line2);padding:2px 7px;border-radius:99px}
+.stats{font-family:"Space Mono";font-size:12px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+.stats b{color:var(--ink)}
+.spacer{flex:1}
+.btn{border:1px solid var(--line2);background:var(--panel2);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600;white-space:nowrap}
+.btn:hover{border-color:var(--teal)}
+.btn.primary{background:var(--lime);color:#11140f;border-color:var(--lime)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.teal{background:var(--teal2);border-color:var(--teal)}
+.btn.sm{padding:4px 9px;font-size:12px;border-radius:6px}
+.btn.ghost{background:transparent}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+main{max-width:1400px;margin:0 auto;padding:20px;display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:20px;align-items:start}
+@media(max-width:1000px){main{grid-template-columns:1fr}.side{position:static!important}}
+.drop{border:1.5px dashed var(--line2);border-radius:var(--r);padding:22px;text-align:center;background:var(--panel);transition:.15s}
+.drop.over{border-color:var(--lime);background:#1c2413}
+.drop h2{margin:0 0 6px;font-size:17px}
+.drop p{margin:0 0 14px;color:var(--muted)}
+.drop .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.toolbar{display:flex;gap:8px;align-items:center;margin:16px 0 10px;flex-wrap:wrap}
+.toolbar .hint{color:var(--muted);font-size:12px}
+.sec{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
+.sec.empty{opacity:.75}
+.sechead{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;user-select:none}
+.sechead .num{font-family:"Space Mono";font-weight:700;background:var(--teal2);color:#fff;border-radius:6px;min-width:30px;text-align:center;padding:2px 6px}
+.sec.empty .num{background:var(--line2);color:var(--muted)}
+.sechead .name{font-weight:700;font-size:15px}
+.sechead .meta{font-family:"Space Mono";font-size:11px;color:var(--muted)}
+.sechead .chev{margin-left:auto;color:var(--muted);transition:transform .15s}
+.sec.closed .chev{transform:rotate(-90deg)}
+.sec.closed .secbody{display:none}
+.secbody{border-top:1px solid var(--line);padding:6px 10px 10px}
+.secbody.over{background:#1c2413}
+.item{border:1px solid var(--line);background:var(--panel2);border-radius:8px;margin:6px 0;padding:8px 8px 8px 4px}
+.item.dragging{opacity:.4}
+.item.dropbefore{box-shadow:0 -3px 0 var(--lime)}
+.irow{display:flex;align-items:center;gap:6px}
+.handle{cursor:grab;color:var(--dim);padding:0 6px;font-size:16px;line-height:1}
+.ititle{flex:1;min-width:0;background:transparent;border:1px solid transparent;border-radius:6px;padding:5px 7px;font-weight:600}
+.ititle:hover{border-color:var(--line2)} .ititle:focus{outline:none;border-color:var(--teal);background:#141811}
+.pg{font-family:"Space Mono";font-size:11px;color:var(--muted);white-space:nowrap}
+.fname{font-family:"Space Mono";font-size:11px;color:var(--dim);margin:2px 0 0 30px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.flag{font-family:"Space Mono";font-size:10px;padding:1px 6px;border-radius:99px;border:1px solid}
+.flag.warn{color:var(--amber);border-color:#6b5520} .flag.err{color:var(--red);border-color:#6b2a22}
+.subs{margin:6px 0 0 30px;border-left:1px dashed var(--line2);padding-left:10px}
+.sub{display:flex;gap:6px;align-items:center;margin:3px 0}
+.sub input.t{flex:1;min-width:0;background:#141811;border:1px solid var(--line);border-radius:5px;padding:3px 7px;font-size:13px}
+.sub input.p{width:58px;background:#141811;border:1px solid var(--line);border-radius:5px;padding:3px 5px;font-family:"Space Mono";font-size:12px}
+.sub input:focus{outline:none;border-color:var(--teal)}
+.icon{background:transparent;border:1px solid transparent;border-radius:6px;cursor:pointer;color:var(--muted);padding:3px 6px}
+.icon:hover{border-color:var(--line2);color:var(--ink)}
+.movesel{background:#141811;border:1px solid var(--line);border-radius:6px;padding:3px;font-size:12px;max-width:130px;color:var(--muted)}
+.side{position:sticky;top:76px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:14px}
+.card h3{margin:0 0 10px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--lime);font-family:"Space Mono"}
+.field{margin-bottom:8px}
+.field label{display:block;font-size:11px;color:var(--muted);margin-bottom:3px;font-family:"Space Mono";text-transform:uppercase;letter-spacing:.05em}
+.field input{width:100%;background:#141811;border:1px solid var(--line);border-radius:6px;padding:7px 9px}
+.field input:focus{outline:none;border-color:var(--teal)}
+.field .auto{font-size:10px;color:var(--teal);float:right;text-transform:none}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#coverCanvas{width:100%;border-radius:4px;background:#fff;display:block;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.outname{font-family:"Space Mono";font-size:12px;color:var(--muted);margin-top:8px;word-break:break-all}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal.show{display:flex}
+.mbox{background:var(--panel);border:1px solid var(--line2);border-radius:14px;max-width:760px;width:100%;max-height:88vh;display:flex;flex-direction:column}
+.mhead{padding:16px 18px;border-bottom:1px solid var(--line)}
+.mhead h2{margin:0;font-size:18px}
+.mhead p{margin:4px 0 0;color:var(--muted)}
+.mlist{overflow:auto;padding:10px 18px}
+.issue{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.issue .dot{width:9px;height:9px;border-radius:50%;margin-top:5px;flex:none}
+.issue.err .dot{background:var(--red)} .issue.warn .dot{background:var(--amber)} .issue.info .dot{background:var(--teal)}
+.issue .where{font-family:"Space Mono";font-size:11px;color:var(--muted)}
+.issue .fix{margin-left:auto;flex:none}
+.mfoot{padding:14px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.busy{position:fixed;inset:0;background:rgba(10,12,9,.75);z-index:60;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.busy.show{display:flex}
+.bar{width:320px;height:6px;background:var(--line);border-radius:9px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--lime);transition:width .2s}
+.busy .msg{font-family:"Space Mono";color:var(--muted);font-size:12px;text-align:center;max-width:90vw}
+.unsorted{border-color:#6b5520}
+.unsorted .num{background:#6b5520}
+.secname{background:transparent;border:1px solid transparent;border-radius:6px;padding:3px 6px;font-weight:700;font-size:15px;min-width:0;width:auto;field-sizing:content;max-width:340px}
+.secname:hover{border-color:var(--line2)} .secname:focus{outline:none;border-color:var(--teal);background:#141811}
+.addsec{display:flex;gap:8px;align-items:center;margin:12px 0 30px;flex-wrap:wrap}
+.addsec input{flex:1;min-width:200px;background:var(--panel);border:1px solid var(--line2);border-radius:8px;padding:7px 10px}
+.addsec input:focus{outline:none;border-color:var(--teal)}
+.empty-note{color:var(--dim);font-size:12px;padding:6px 4px}
+</style>
+</head>
+<body>
+<header><div class="hwrap">
+  <div class="brand">📑 PQA Builder <span class="tag">NICON</span></div>
+  <div class="stats" id="stats"></div>
+  <div class="spacer"></div>
+  <button class="btn ghost" id="btnSuggest" title="Sorter filer efter faste regler">↕ Foreslå rækkefølge</button>
+  <button class="btn ghost" id="btnReset">Nulstil</button>
+  <button class="btn primary" id="btnDownload">⬇ Tjek &amp; download</button>
+</div></header>
+
+<main>
+  <section>
+    <div class="drop" id="drop">
+      <h2>Træk hele mappen "Mærkning" herind</h2>
+      <p>Filer placeres automatisk efter mappenavn (fx <span class="mono">5. Materials</span>) – ellers efter filnavn.</p>
+      <div class="row">
+        <button class="btn teal" id="btnFolder">Vælg mappe…</button>
+        <button class="btn" id="btnFiles">Vælg filer…</button>
+      </div>
+      <input type="file" id="inFolder" webkitdirectory directory multiple hidden>
+      <input type="file" id="inFiles" accept="application/pdf,.pdf" multiple hidden>
+      <input type="file" id="inSection" accept="application/pdf,.pdf" multiple hidden>
+    </div>
+    <div class="toolbar">
+      <button class="btn sm" id="btnOpenAll">Fold alle ud</button>
+      <button class="btn sm" id="btnCloseAll">Fold alle sammen</button>
+      <span class="hint">Klik på et navn for at omdøbe (også sektioner) · ☰ / ↑↓ flytter · sidetal i underbogmærker er side i filen</span>
+    </div>
+    <div id="list"></div>
+  </section>
+
+  <aside class="side">
+    <div class="card">
+      <h3>Forside</h3>
+      <canvas id="coverCanvas" width="595" height="842"></canvas>
+      <div class="outname" id="outName"></div>
+    </div>
+    <div class="card">
+      <h3>Oplysninger</h3>
+      <div class="field"><label>PQA navn <span class="auto" id="autoTag"></span></label><input id="m_name" placeholder="fx BIT Frame"></div>
+      <div class="field"><label>Titel</label><input id="m_title"></div>
+      <div class="grid2">
+        <div class="field"><label>Client</label><input id="m_client"></div>
+        <div class="field"><label>Date</label><input id="m_date"></div>
+      </div>
+      <div class="field"><label>Project</label><input id="m_project"></div>
+      <div class="field"><label>Package</label><input id="m_package"></div>
+      <div class="field"><label>Scope</label><input id="m_scope"></div>
+    </div>
+  </aside>
+</main>
+
+<div class="modal" id="modal"><div class="mbox">
+  <div class="mhead"><h2 id="mTitle">Tjek før download</h2><p id="mSub"></p></div>
+  <div class="mlist" id="mList"></div>
+  <div class="mfoot">
+    <button class="btn ghost" id="mBack">Tilbage og ret</button>
+    <button class="btn teal" id="mFixAll">Ret stavning automatisk</button>
+    <button class="btn primary" id="mGo">Download</button>
+  </div>
+</div></div>
+
+<div class="busy" id="busy"><div class="bar"><i id="barFill"></i></div><div class="msg" id="busyMsg">Arbejder…</div></div>
+
+<script>
+"use strict";
+const { PDFDocument, rgb, StandardFonts, degrees, PDFName, PDFHexString, BlendMode } = PDFLib;
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+const LOGO_B64 = "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";
+const FONT_URLS = {
+  r: "https://cdn.jsdelivr.net/npm/@expo-google-fonts/montserrat@0.4.2/400Regular/Montserrat_400Regular.ttf",
+  s: "https://cdn.jsdelivr.net/npm/@expo-google-fonts/montserrat@0.4.2/600SemiBold/Montserrat_600SemiBold.ttf",
+  b: "https://cdn.jsdelivr.net/npm/@expo-google-fonts/montserrat@0.4.2/700Bold/Montserrat_700Bold.ttf",
+  x: "https://cdn.jsdelivr.net/npm/@expo-google-fonts/montserrat@0.4.2/800ExtraBold/Montserrat_800ExtraBold.ttf",
+};
+
+/* ================= rules ================= */
+const SECTIONS = ["Certificate of Conformity (CoC)","ITP","Drawings","Dim Control","Materials","Weld ID & Log",
+  "NDT","Welders Certificates","WPS & WPQR","Paint Report","IWE & IWS","Welding Machines","FAT"];
+
+const KEYWORDS = [ // fallback section detection from file name
+  [1,/\bcoc\b|conformity/i],[2,/\bitp\b|inspection and test plan/i],[4,/dim(ensional)?\s*control|\bdim\b/i],
+  [6,/weld\s*id|weld(ing)?\s*log|parameter\s*check/i],[7,/\b(vt|mt|ut|rt|pt)-\d{4}|\bndt\b|\b(vt|mt|ut|rt|pt)\s?[123]\b/i],
+  [9,/\bwps\b|\bwpqr\b|^ni\s?\d+\s*\(/i],[8,/welder|^\d{3,5}\s*-\s*\d{3}/i],[10,/paint/i],[11,/\biw[est]\b|\bewe\b/i],
+  [12,/welding\s*(unit|machine)|calibration/i],[13,/\bfat\b|factory acceptance/i],
+  [5,/material|certific|\bpl\s?\.?\s?\d|\bheb\s?\d|\bipe\s?\d|\bunp\s?\d|\bl\d+x\d+|wire|concession|charpy/i],
+  [3,/drawing|cutlist|frame[_\s]*\d/i],
+];
+
+const SPELL = [ // [regex, replacement, description]
+  [/Consession/g,"Concession"],[/\bCertificat\b/g,"Certificate"],[/Certifcate/gi,"Certificate"],[/Certficate/gi,"Certificate"],
+  [/Safetytest/gi,"Safety Test"],[/Effectiency/gi,"Efficiency"],[/Inspecton/gi,"Inspection"],[/Proceedure/gi,"Procedure"],
+  [/Controll\b/gi,"Control"],[/Paramter/gi,"Parameter"],[/Materiel\b/gi,"Material"],[/Weldng/gi,"Welding"],
+  [/Recieved/gi,"Received"],[/Seperate/gi,"Separate"],[/\bBit Frame/g,"BIT Frame"],
+  [/\bdiplom\b/gi,"Diploma"],[/\bcertifikat(er)?\b/gi,"Certificate"],[/\btegning(er)?\b/gi,"Drawing"],[/\brapport\b/gi,"Report"],
+  [/\bsvejsning\b/gi,"Welding"],[/\bsvejser\b/gi,"Welder"],[/\bmaskine(r)?\b/gi,"Machine"],[/\bm[åa]lkontrol\b/gi,"Dimensional Control"],
+  [/\bsikkerhedstest\b/gi,"Safety Test"],[/\bmateriale(r)?\b/gi,"Material"],[/\bmaling\b/gi,"Painting"],[/\beftersyn\b/gi,"Inspection"],
+  [/\bkalibrering\b/gi,"Calibration"],[/\bgodkendelse\b/gi,"Approval"],[/\bvalideringsinfo\b/gi,"Validation Info"],
+  [/\bpulvertraktor\b/gi,"SAW Tractor"],[/\boversigt\b/gi,"Overview"],[/\bmidlertidig\b/gi,"Temporary"],[/\bprøvning\b/gi,"Testing"],
+];
+function spellFix(t){
+  let s = t;
+  for (const [re, rep] of SPELL) s = s.replace(re, m => rep);
+  return s;
+}
+function tidy(t){
+  return spellFix(String(t).replace(/\.pdf$/i,"").replace(/_/g," ")).replace(/\s+/g," ").trim();
+}
+function cosmeticIssues(t){
+  const out = [];
+  if (/_/.test(t)) out.push("understreg");
+  if (/\s{2,}/.test(t) || t !== t.trim()) out.push("dobbelt mellemrum");
+  if (/\.pdf$/i.test(t)) out.push('".pdf" i titel');
+  for (const [re, rep] of SPELL){ re.lastIndex = 0; const m = t.match(re); if (m && m[0] !== rep) out.push(`"${m[0]}" → "${rep}"`); re.lastIndex = 0; }
+  return out;
+}
+const stripPrefix = n => n.replace(/^\d{1,2}\s+(?!-)/, "").trim();
+const prefixNum = n => { const m = n.match(/^(\d{1,2})\s+(?!-)/); return m ? +m[1] : null; };
+const frameNum = n => { const m = n.match(/frame[\s_]*(\d+)/i); return m ? +m[1] : null; };
+const isNdtReport = t => /^(vt|mt|ut|rt|pt|paut|et)-\d/i.test(t) || /report/i.test(t);
+const isNdtCert = t => !isNdtReport(t) && (/\b(vt|mt|ut|rt|pt)\s?[123]\b/i.test(t) || /level|^\d{3,5}\s*-/i.test(t));
+const NDT_METHOD = ["VT","MT","PT","UT","RT","ET"];
+
+function sortKey(secNo, it){
+  const n = it.fileName, num = prefixNum(n) ?? 9999, fr = frameNum(n) ?? 99;
+  if (secNo === 7){
+    const m = (it.title.match(/\b(VT|MT|PT|UT|RT|ET)\s?[123]\b/i)||[])[1];
+    const mi = m ? NDT_METHOD.indexOf(m.toUpperCase()) : 99;
+    return [isNdtCert(it.title) ? 1 : 0, fr, isNdtCert(it.title) ? mi : 0, num, n.toLowerCase()];
+  }
+  return [fr, num, n.toLowerCase()];
+}
+const cmpKey = (a,b) => { for (let i=0;i<a.length;i++){ if (a[i]<b[i]) return -1; if (a[i]>b[i]) return 1; } return 0; };
+
+/* ================= state ================= */
+let uid = 0;
+let secUid = 100;
+function defaultSections(){ return SECTIONS.map((name,i)=>({no:i+1, rule:i+1, name, items:[], open:true})); }
+function loadLayout(){
+  try {
+    const L = JSON.parse(localStorage.getItem("pqa_sections")||"null");
+    if (Array.isArray(L) && L.length) return L.map(x => ({no: ++secUid, rule: x.rule||0, name: String(x.name||""), items:[], open:true}));
+  } catch(e){}
+  return defaultSections();
+}
+function saveLayout(){ try { localStorage.setItem("pqa_sections", JSON.stringify(state.sections.map(s=>({name:s.name, rule:s.rule})))); } catch(e){} }
+const state = { sections: loadLayout(), unsorted:{no:0, rule:0, name:"Ikke placeret",items:[],open:true}, skipped:[] };
+const pos = s => state.sections.indexOf(s) + 1;
+const byRule = r => state.sections.find(s => s.rule === r);
+const META_KEYS = ["name","title","client","date","project","package","scope"];
+const meta = { name:"", title:"Manufacturing Data Record", client:"", date:todayStr(), project:"", package:"", scope:"" };
+const metaAuto = { name:"", client:"", project:"", package:"", scope:"" };
+const metaTouched = {};
+try { const saved = JSON.parse(localStorage.getItem("pqa_meta")||"{}"); for (const k of ["title","client","project","package"]) if (saved[k]) { meta[k]=saved[k]; metaTouched[k]=true; } } catch(e){}
+function todayStr(){ const d=new Date(); return `${String(d.getDate()).padStart(2,"0")}-${String(d.getMonth()+1).padStart(2,"0")}-${d.getFullYear()}`; }
+const allItems = () => state.sections.flatMap(s=>s.items);
+const secOf = no => no===0 ? state.unsorted : (state.sections.find(s=>s.no===no) || state.unsorted);
+function findItem(id){ for (const s of [...state.sections, state.unsorted]){ const i = s.items.findIndex(x=>x.id===id); if (i>=0) return {sec:s, idx:i, item:s.items[i]}; } return null; }
+
+/* ================= file intake ================= */
+const $ = id => document.getElementById(id);
+async function readEntries(entry, path=""){
+  if (entry.isFile) return new Promise(res => entry.file(f => res([{file:f, path:path+f.name}]), ()=>res([])));
+  if (entry.isDirectory){
+    const reader = entry.createReader(); let all = [], batch;
+    do { batch = await new Promise(res => reader.readEntries(res, ()=>res([]))); all = all.concat(batch); } while (batch.length);
+    const out = [];
+    for (const e of all) out.push(...await readEntries(e, path + entry.name + "/"));
+    return out;
+  }
+  return [];
+}
+function detectSection(path, fileName){
+  const segs = path.split("/").slice(0,-1).reverse();
+  const norm = x => x.toLowerCase().replace(/\s+/g," ").trim();
+  for (const seg of segs){
+    const m = seg.match(/^(\d{1,2})\s*\.\s*(.+)$/);
+    const name = norm(m ? m[2] : seg);
+    let sec = state.sections.find(s => norm(s.name) === name);
+    if (!sec){ const di = SECTIONS.findIndex(n => norm(n) === name); if (di >= 0) sec = byRule(di+1); }
+    if (!sec && m){ // unknown numbered folder -> new section
+      sec = {no: ++secUid, rule:0, name: m[2].trim(), items:[], open:true};
+      const at = Math.min(Math.max(0, +m[1]-1), state.sections.length);
+      state.sections.splice(at, 0, sec); saveLayout();
+    }
+    if (sec) return sec.no;
+  }
+  for (const [r, re] of KEYWORDS) if (re.test(fileName)){ const sec = byRule(r); if (sec) return sec.no; }
+  return 0;
+}
+async function addFiles(list, forceSection=null){
+  const pdfs = list.filter(x => /\.pdf$/i.test(x.file.name));
+  if (!pdfs.length) return;
+  busy(true, "Læser filer…", 0);
+  let done = 0;
+  for (const {file, path} of pdfs){
+    const secNo = forceSection ?? detectSection(path || file.name, file.name);
+    const base = file.name.replace(/\.pdf$/i,"").trim().toLowerCase();
+    if (state.sections.some(x => base === `${pos(x)}. ${x.name}`.toLowerCase() || (x.rule && base === `${x.rule}. ${SECTIONS[x.rule-1]}`.toLowerCase()))){
+      state.skipped.push(file.name); done++; continue; // old merged section file
+    }
+    if (allItems().concat(state.unsorted.items).some(it => it.fileName===file.name && it.size===file.size && it.secNo===secNo)){ done++; continue; }
+    busy(true, `Læser ${file.name}`, done/pdfs.length);
+    const it = await analyse(file, secOf(secNo));
+    secOf(secNo).items.push(it);
+    done++;
+  }
+  for (const s of state.sections) s.items.sort((a,b)=>cmpKey(sortKey(s.rule,a), sortKey(s.rule,b)));
+  certsFromOverview();
+  autoMeta();
+  busy(false);
+  render();
+}
+async function analyse(file, sec){
+  const secNo = sec.no, rule = sec.rule;
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const it = { id:++uid, file, fileName:file.name, size:file.size, bytes, pages:0, secNo, title:"", subs:[], hl:[], errors:[], encrypted:false, open:false, text1:"" };
+  const raw = stripPrefix(file.name.replace(/\.pdf$/i,""));
+  it.title = tidy(raw);
+  let doc;
+  try {
+    doc = await pdfjsLib.getDocument({data: bytes.slice(), isEvalSupported:false}).promise;
+    it.pages = doc.numPages;
+    // existing bookmarks
+    const outline = await doc.getOutline().catch(()=>null);
+    const flat = [];
+    async function walk(nodes, depth){
+      for (const n of nodes||[]){
+        let page = 1;
+        try {
+          let dest = n.dest; if (typeof dest === "string") dest = await doc.getDestination(dest);
+          if (Array.isArray(dest) && dest[0]) page = (typeof dest[0]==="object" ? await doc.getPageIndex(dest[0]) : dest[0]) + 1;
+        } catch(e){}
+        flat.push({title:n.title||"", page, depth});
+        await walk(n.items, depth+1);
+      }
+    }
+    await walk(outline, 1);
+    // clean: drop names equal to file / section, pure digits; re-level
+    const skip = new Set([raw.toLowerCase(), it.title.toLowerCase(), (sec.no?`${pos(sec)}. ${sec.name}`:"").toLowerCase(), sec.name.toLowerCase(), file.name.replace(/\.pdf$/i,"").toLowerCase()]);
+    const stack = [];
+    for (const f of flat){
+      const t = tidy(f.title);
+      while (stack.length && stack[stack.length-1].d >= f.depth) stack.pop();
+      const keep = t && !skip.has(t.toLowerCase()) && !/^\d+$/.test(t);
+      const depth = stack.filter(s=>s.k).length + 1;
+      stack.push({d:f.depth, k:keep});
+      if (keep) it.subs.push({title:t, page:f.page, depth});
+    }
+    if (rule === 8 && !/^welder id/i.test(it.title)) it.title = "Welder ID " + it.title;
+    if (rule === 9) it.subs = [];
+    if (rule === 5) await materialSubs(it, doc);
+    if (rule === 2 || rule === 1){ try { const p = await doc.getPage(1); it.text1 = (await p.getTextContent()).items.map(i=>i.str).join("\n"); } catch(e){} }
+  } catch(e){
+    it.errors.push(e && e.name === "PasswordException" ? "Filen er password-beskyttet" : "Kan ikke læses som PDF");
+  } finally { if (doc) doc.destroy(); }
+  try { await PDFDocument.load(bytes, {ignoreEncryption:true, updateMetadata:false}).then(d => { it.encrypted = d.isEncrypted; }); }
+  catch(e){ if (!it.errors.length) it.errors.push("pdf-lib kan ikke åbne filen"); }
+  return it;
+}
+async function materialSubs(it, doc){
+  const t = it.title;
+  const charpy = it.subs.filter(s => /charpy/i.test(s.title)).map(s => ({title:"Charpy Impact Test Report", page:s.page, depth:1}));
+  it.subs = [];
+  if (/overview/i.test(t)){
+    const parts = [];
+    for (let p = 1; p <= Math.min(doc.numPages, 10); p++){ const tc = await (await doc.getPage(p)).getTextContent(); parts.push(...tc.items.map(i=>i.str.trim()).filter(Boolean)); }
+    it.overview = parts;
+  }
+  if (/overview|concession|\bcr-\d|deviation/i.test(t)) { it.subs = charpy; return; }
+  const m = t.match(/\s-\s(.+)$/);
+  const id = m ? m[1].trim() : "";
+  const label = /^pl\b|^pl\s?\.?\s?\d|plate/i.test(t) ? "Plate No." : (/wire|^dw-|filler|flux|electrode/i.test(t) ? "Batch No." : "Heat No.");
+  let certNo = "", idPage = 0, annPage = 0;
+  const variants = id ? [...new Set([id, id.replace(/-/g," "), id.replace(/[-\s]/g,"")])] : [];
+  const maxP = Math.min(doc.numPages, 40);
+  for (let p = 1; p <= maxP; p++){
+    const page = await doc.getPage(p);
+    const tc = await page.getTextContent();
+    const text = tc.items.map(i=>i.str).join(" ");
+    if (!certNo){
+      for (const cm of text.matchAll(/(?:certificate|certificat|zeugnis|cert\.)\s*(?:no\b\.?|nr\b\.?|number\b|№|#)\s*[:.]?\s*[:.]?\s*([A-Z0-9](?:[A-Z0-9\/\-.]|\s(?=[0-9\/\-])|(?<=[\-\/])\s){3,30})/gi)){
+        const c = cm[1].replace(/\s+/g,"").replace(/[.,]$/,"");
+        if (/\d/.test(c) && !/^(date|page)/i.test(c)) { certNo = c; break; }
+      }
+    }
+    if (variants.length && !idPage && variants.some(v => text.includes(v))) idPage = p;
+    if (!annPage){ const an = await page.getAnnotations().catch(()=>[]); if (an.some(a => ["Highlight","Ink","Square"].includes(a.subtype))) annPage = p; }
+    if (certNo && idPage && annPage) break;
+  }
+  it.subs.push({title:`Certificate No. ${certNo}`.trim(), page:1, depth:1, needsCheck:true, auto:!!certNo, src: certNo ? "certifikatet" : ""});
+  if (id){ it.subs.push({title:`${label} ${id}`, page: idPage || annPage || 1, depth:1}); it.hl = variants; it.matId = id; }
+  it.subs.push(...charpy);
+}
+function certsFromOverview(){
+  const mats = (byRule(5)||{items:[]}).items;
+  const overviews = mats.filter(i => i.overview);
+  if (!overviews.length) return;
+  const norm = x => x.replace(/[^a-z0-9]/gi,"").toLowerCase();
+  for (const it of mats){
+    if (!it.matId) continue;
+    const sub = it.subs.find(x => /^certificate no\./i.test(x.title));
+    if (!sub || !sub.needsCheck) continue;
+    const idn = norm(it.matId);
+    for (const ov of overviews){
+      const k = ov.overview.findIndex(x => norm(x) === idn);
+      if (k >= 0 && ov.overview[k+1] && !/\s-\s/.test(ov.overview[k+1])){
+        sub.title = `Certificate No. ${ov.overview[k+1]}`; sub.auto = true; sub.src = `"${ov.title}"`; break;
+      }
+    }
+  }
+}
+function autoMeta(){
+  const names = allItems().map(i=>i.fileName + " " + i.title);
+  const counts = {};
+  for (const n of names){ const m = n.replace(/_/g," ").match(/\b([A-Z][A-Za-z0-9]{1,15})\s+Frame\b/); if (m){ const k = m[1].toUpperCase()===m[1] ? m[1] : m[1]; counts[k+" Frame"] = (counts[k+" Frame"]||0)+1; } }
+  const best = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+  metaAuto.name = best ? best[0] : "";
+  if (best){
+    const frames = [...new Set(names.map(n => (n.replace(/_/g," ").match(new RegExp(best[0].replace(" ","\\s+")+"\\s*(\\d+)","i"))||[])[1]).filter(Boolean))].sort((a,b)=>a-b);
+    metaAuto.scope = frames.length ? frames.map(f=>`${best[0]} ${f}`).join(" & ") : best[0];
+  }
+  const txt = allItems().map(i=>i.text1).join("\n");
+  const grab = re => { const m = txt.match(re); return m ? m[1].replace(/\s+/g," ").trim() : ""; };
+  metaAuto.project = grab(/Project Name\s*\n+\s*([^\n]{3,80})/i);
+  metaAuto.package = grab(/Package\s*\n+\s*([^\n]{3,80})/i).replace(/Seafasting/i,"Seafastening");
+  metaAuto.client = /\bRWE\b/.test(txt) ? "RWE" : (grab(/(?:Client|Employer|Customer)\s*[:\n]\s*([^\n]{2,40})/i));
+  for (const k of ["name","scope","project","package","client"]) if (!metaTouched[k] && metaAuto[k]) meta[k] = metaAuto[k];
+  fillMeta();
+}
+
+/* ================= rendering ================= */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function render(){
+  const list = $("list");
+  const secs = [...state.sections];
+  let html = "";
+  if (state.unsorted.items.length) html += secHTML(state.unsorted, true);
+  for (const s of secs) html += secHTML(s, false);
+  html += `<div class="addsec"><input id="newSecName" placeholder="Navn på ny sektion, fx Heat Treatment"><button class="btn sm teal" data-act="secadd">＋ Tilføj sektion</button><button class="btn sm ghost" data-act="secreset" title="Gendan de 13 standardsektioner">Standard-sektioner</button></div>`;
+  list.innerHTML = html;
+  const items = allItems();
+  const pages = items.reduce((a,i)=>a+i.pages,0);
+  const filled = state.sections.filter(s=>s.items.length).length;
+  $("stats").innerHTML = `<span><b>${items.length}</b> filer</span><span><b>${pages}</b> sider</span><span><b>${filled}</b>/${state.sections.length} sektioner</span>`;
+  scheduleCover();
+}
+function secHTML(s, isUnsorted){
+  const pages = s.items.reduce((a,i)=>a+i.pages,0);
+  const n = pos(s);
+  const head = `<div class="sechead" data-toggle="${s.no}">
+      <span class="num">${isUnsorted?"?":n}</span>
+      ${isUnsorted ? `<span class="name">${esc(s.name)}</span>` : `<input class="secname" data-secname="${s.no}" value="${esc(s.name)}" title="Omdøb sektion">`}
+      <span class="meta">${s.items.length} filer · ${pages} s.</span>
+      ${isUnsorted?'<span class="flag warn">kommer ikke med</span>':`
+        <button class="icon" data-act="secup" data-sec="${s.no}" title="Ryk sektion op">↑</button>
+        <button class="icon" data-act="secdown" data-sec="${s.no}" title="Ryk sektion ned">↓</button>
+        <button class="icon" data-act="secdel" data-sec="${s.no}" title="Slet sektion">🗑</button>`}
+      <span class="chev">▾</span></div>`;
+  const opts = (cur) => `<option value="">Flyt til…</option>` + state.sections.map(x=>`<option value="${x.no}" ${x.no===cur?"disabled":""}>${pos(x)}. ${esc(x.name)}</option>`).join("");
+  const body = s.items.length ? s.items.map(it => {
+    const warn = it.errors.length ? `<span class="flag err">${esc(it.errors[0])}</span>` : (it.encrypted ? `<span class="flag warn">krypteret</span>` : "");
+    const subs = it.subs.map((sb,k)=>`<div class="sub" style="margin-left:${(sb.depth-1)*16}px">
+        <input class="t" data-sub="${it.id}:${k}" data-f="title" value="${esc(sb.title)}">
+        <input class="p" type="number" min="1" max="${it.pages}" data-sub="${it.id}:${k}" data-f="page" value="${sb.page}" title="Side i filen">
+        <button class="icon" data-act="subup" data-id="${it.id}" data-k="${k}" title="Ryk op">↑</button>
+        <button class="icon" data-act="subdel" data-id="${it.id}" data-k="${k}" title="Slet">✕</button></div>`).join("");
+    return `<div class="item" draggable="true" data-item="${it.id}">
+      <div class="irow">
+        <span class="handle" title="Træk">☰</span>
+        <input class="ititle" data-title="${it.id}" value="${esc(it.title)}">
+        ${warn}<span class="pg">${it.pages} s.</span>
+        <button class="icon" data-act="up" data-id="${it.id}" title="Op">↑</button>
+        <button class="icon" data-act="down" data-id="${it.id}" title="Ned">↓</button>
+        <select class="movesel" data-move="${it.id}">${opts(s.no)}</select>
+        <button class="icon" data-act="addsub" data-id="${it.id}" title="Tilføj underbogmærke">＋</button>
+        <button class="icon" data-act="del" data-id="${it.id}" title="Fjern fil">🗑</button>
+      </div>
+      <div class="fname">${esc(it.fileName)}</div>
+      ${it.subs.length ? `<div class="subs">${subs}</div>` : ""}
+    </div>`;
+  }).join("") : `<div class="empty-note">Ingen filer – vises som "Not included" på forsiden.</div>`;
+  const add = isUnsorted ? "" : `<div style="margin-top:6px"><button class="btn sm ghost" data-act="addto" data-sec="${s.no}">＋ Tilføj filer</button></div>`;
+  return `<div class="sec ${s.items.length?"":"empty"} ${s.open?"":"closed"} ${isUnsorted?"unsorted":""}" data-sec="${s.no}">${head}
+    <div class="secbody" data-body="${s.no}">${body}${add}</div></div>`;
+}
+
+/* ================= events ================= */
+const list = $("list");
+list.addEventListener("click", e => {
+  const tg = e.target.closest("[data-toggle]");
+  if (tg && !e.target.closest("button,input,select")){ const s = secOf(+tg.dataset.toggle); s.open = !s.open; render(); return; }
+  const b = e.target.closest("button[data-act]"); if (!b) return;
+  const act = b.dataset.act;
+  if (act === "secadd"){
+    const inp = $("newSecName"); const name = (inp.value||"").trim() || "New Section";
+    state.sections.push({no: ++secUid, rule:0, name, items:[], open:true}); saveLayout(); render();
+    setTimeout(()=>{ const el = document.querySelector(`[data-secname="${secUid}"]`); if (el){ el.scrollIntoView({block:"center"}); if (name==="New Section") el.select(); } }, 30);
+    return;
+  }
+  if (act === "secreset"){
+    if (!confirm("Gendan de 13 standardsektioner? Filer i sektioner der forsvinder flyttes til 'Ikke placeret'.")) return;
+    const old = state.sections; const fresh = defaultSections().map(x => ({...x, no: ++secUid}));
+    for (const o of old){ const t = o.rule ? fresh.find(f=>f.rule===o.rule) : null; (t ? t.items : state.unsorted.items).push(...o.items); }
+    state.sections = fresh; saveLayout(); render(); return;
+  }
+  if (act === "secup" || act === "secdown" || act === "secdel"){
+    const i = state.sections.findIndex(x=>x.no===+b.dataset.sec); if (i<0) return;
+    if (act === "secup" && i>0) [state.sections[i-1], state.sections[i]] = [state.sections[i], state.sections[i-1]];
+    if (act === "secdown" && i<state.sections.length-1) [state.sections[i+1], state.sections[i]] = [state.sections[i], state.sections[i+1]];
+    if (act === "secdel"){
+      const sec = state.sections[i];
+      if (sec.items.length && !confirm(`Slet sektionen "${sec.name}"? De ${sec.items.length} filer flyttes til 'Ikke placeret'.`)) return;
+      state.unsorted.items.push(...sec.items); state.sections.splice(i,1);
+    }
+    saveLayout(); render(); return;
+  }
+  if (act === "addto"){ pendingSection = +b.dataset.sec; $("inSection").value=""; $("inSection").click(); return; }
+  const f = findItem(+b.dataset.id); if (!f) return;
+  const {sec, idx, item} = f;
+  if (act === "up" && idx>0) [sec.items[idx-1], sec.items[idx]] = [sec.items[idx], sec.items[idx-1]];
+  if (act === "down" && idx<sec.items.length-1) [sec.items[idx+1], sec.items[idx]] = [sec.items[idx], sec.items[idx+1]];
+  if (act === "del") sec.items.splice(idx,1);
+  if (act === "addsub") item.subs.push({title:"", page:1, depth:1});
+  if (act === "subdel") item.subs.splice(+b.dataset.k,1);
+  if (act === "subup"){ const k=+b.dataset.k; if (k>0) [item.subs[k-1], item.subs[k]] = [item.subs[k], item.subs[k-1]]; }
+  render();
+});
+list.addEventListener("input", e => {
+  const t = e.target;
+  if (t.dataset.secname){ secOf(+t.dataset.secname).name = t.value; saveLayout(); scheduleCover(); return; }
+  if (t.dataset.title){ findItem(+t.dataset.title).item.title = t.value; scheduleCover(); }
+  if (t.dataset.sub){ const [id,k] = t.dataset.sub.split(":"); const sb = findItem(+id).item.subs[+k]; if (t.dataset.f==="page") sb.page = parseInt(t.value)||1; else { sb.title = t.value; sb.needsCheck = false; } }
+});
+list.addEventListener("keydown", e => { if (e.target.dataset && e.target.dataset.secname && e.key === "Enter") e.target.blur(); if (e.target.id === "newSecName" && e.key === "Enter") document.querySelector('[data-act="secadd"]').click(); });
+list.addEventListener("change", e => {
+  const t = e.target;
+  if (t.dataset.secname){ render(); return; }
+  if (t.dataset.move && t.value){
+    const f = findItem(+t.dataset.move); f.sec.items.splice(f.idx,1);
+    const to = secOf(+t.value); f.item.secNo = to.no;
+    if (to.rule===8 && !/^welder id/i.test(f.item.title)) f.item.title = "Welder ID " + f.item.title;
+    to.items.push(f.item); to.open = true; render();
+  }
+});
+// drag & drop reordering
+let dragId = null;
+list.addEventListener("dragstart", e => { const el = e.target.closest("[data-item]"); if (!el) return; if (e.target.closest("input")) { e.preventDefault(); return; } dragId = +el.dataset.item; el.classList.add("dragging"); e.dataTransfer.effectAllowed="move"; e.dataTransfer.setData("text/x-pqa", String(dragId)); });
+list.addEventListener("dragend", () => { dragId=null; document.querySelectorAll(".dragging,.dropbefore,.secbody.over").forEach(x=>x.classList.remove("dragging","dropbefore","over")); });
+list.addEventListener("dragover", e => {
+  if (dragId===null) return;
+  const body = e.target.closest("[data-body]"); if (!body) return;
+  e.preventDefault();
+  document.querySelectorAll(".dropbefore,.secbody.over").forEach(x=>x.classList.remove("dropbefore","over"));
+  const over = e.target.closest("[data-item]");
+  if (over && +over.dataset.item!==dragId) over.classList.add("dropbefore"); else body.classList.add("over");
+});
+list.addEventListener("drop", e => {
+  if (dragId===null) return;
+  const body = e.target.closest("[data-body]"); if (!body) return;
+  e.preventDefault(); e.stopPropagation();
+  const f = findItem(dragId); f.sec.items.splice(f.idx,1);
+  const to = secOf(+body.dataset.body); f.item.secNo = to.no;
+  const over = e.target.closest("[data-item]");
+  let at = to.items.length;
+  if (over){ const i = to.items.findIndex(x=>x.id===+over.dataset.item); if (i>=0) at = i; }
+  to.items.splice(at,0,f.item); dragId=null; render();
+});
+
+let pendingSection = null;
+$("btnFolder").onclick = () => { $("inFolder").value=""; $("inFolder").click(); };
+$("btnFiles").onclick = () => { $("inFiles").value=""; $("inFiles").click(); };
+$("inFolder").onchange = e => addFiles([...e.target.files].map(f=>({file:f, path:f.webkitRelativePath||f.name})));
+$("inFiles").onchange = e => addFiles([...e.target.files].map(f=>({file:f, path:f.name})));
+$("inSection").onchange = e => addFiles([...e.target.files].map(f=>({file:f, path:f.name})), pendingSection);
+const drop = $("drop");
+["dragenter","dragover"].forEach(ev => document.addEventListener(ev, e => { if (dragId!==null) return; if ([...(e.dataTransfer?.types||[])].includes("Files")){ e.preventDefault(); drop.classList.add("over"); } }));
+document.addEventListener("dragleave", e => { if (!e.relatedTarget) drop.classList.remove("over"); });
+document.addEventListener("drop", async e => {
+  if (dragId!==null) return;
+  if (![...(e.dataTransfer?.types||[])].includes("Files")) return;
+  e.preventDefault(); drop.classList.remove("over");
+  const secBody = e.target.closest && e.target.closest("[data-body]");
+  const items = [...e.dataTransfer.items].map(i => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+  let files = [];
+  if (items.length) for (const en of items) files.push(...await readEntries(en));
+  else files = [...e.dataTransfer.files].map(f=>({file:f, path:f.name}));
+  const forced = secBody && +secBody.dataset.body > 0 && !files.some(f => f.path.includes("/")) ? +secBody.dataset.body : null;
+  addFiles(files, forced);
+});
+$("btnOpenAll").onclick = () => { [...state.sections, state.unsorted].forEach(s=>s.open=true); render(); };
+$("btnCloseAll").onclick = () => { [...state.sections, state.unsorted].forEach(s=>s.open=false); render(); };
+$("btnSuggest").onclick = () => { for (const s of state.sections) s.items.sort((a,b)=>cmpKey(sortKey(s.rule,a), sortKey(s.rule,b))); render(); };
+$("btnReset").onclick = () => { if (!allItems().length && !state.unsorted.items.length) return; state.sections.forEach(s=>s.items=[]); state.unsorted.items=[]; state.skipped=[]; render(); };
+
+function fillMeta(){
+  for (const k of META_KEYS){ const el = $("m_"+k); if (document.activeElement !== el) el.value = meta[k]||""; }
+  $("autoTag").textContent = !metaTouched.name && metaAuto.name && meta.name===metaAuto.name ? "foreslået automatisk" : "";
+  $("outName").textContent = "Fil: " + outFileName();
+}
+for (const k of META_KEYS) $("m_"+k).addEventListener("input", e => {
+  meta[k] = e.target.value; metaTouched[k] = true;
+  try { localStorage.setItem("pqa_meta", JSON.stringify({title:meta.title, client:meta.client, project:meta.project, package:meta.package})); } catch(err){}
+  fillMeta(); scheduleCover();
+});
+const pqaCore = () => meta.name.replace(/^PQA\s*-?\s*/i,"").trim();
+const outFileName = () => `PQA ${pqaCore() || "Untitled"}.pdf`.replace(/[\\/:*?"<>|]/g,"-");
+
+function busy(on, msg, frac){
+  $("busy").classList.toggle("show", on);
+  if (msg) $("busyMsg").textContent = msg;
+  if (frac !== undefined) $("barFill").style.width = Math.round(frac*100)+"%";
+}
+
+/* ================= PDF drawing ================= */
+const C = { navy: rgb(0x13/255,0x30/255,0x5A/255), red: rgb(0xE0/255,0x16/255,0x1B/255), ink: rgb(.13,.15,.20), muted: rgb(.45,.48,.55),
+  line: rgb(.86,.88,.91), pale: rgb(.95,.96,.98), white: rgb(1,1,1), paleBlue: rgb(.78,.83,.9), pink: rgb(1,.55,.55) };
+const A4 = [595.28, 841.89];
+let fontBytesCache = null;
+async function loadFontBytes(){
+  if (fontBytesCache !== null) return fontBytesCache;
+  try {
+    const entries = await Promise.all(Object.entries(FONT_URLS).map(async ([k,u]) => { const r = await fetch(u); if (!r.ok) throw 0; return [k, await r.arrayBuffer()]; }));
+    fontBytesCache = Object.fromEntries(entries);
+  } catch(e){ fontBytesCache = false; }
+  return fontBytesCache;
+}
+async function setupFonts(pdf){
+  const fb = await loadFontBytes();
+  if (fb){
+    pdf.registerFontkit(fontkit);
+    const F = {};
+    for (const k of ["r","s","b","x"]) F[k] = await pdf.embedFont(fb[k], {subset:false});
+    F.unicode = true; return F;
+  }
+  const r = await pdf.embedFont(StandardFonts.Helvetica), b = await pdf.embedFont(StandardFonts.HelveticaBold);
+  return { r, s:b, b, x:b, unicode:false };
+}
+function safe(F, t){
+  t = String(t ?? "");
+  if (F.unicode) return t;
+  return t.replace(/[‐-―]/g,"-").replace(/[“”]/g,'"').replace(/[‘’]/g,"'").replace(/…/g,"...").replace(/[^\x20-\x7E -ÿ€]/g,"?");
+}
+function fitText(F, f, t, size, maxw){ t = safe(F,t); if (f.widthOfTextAtSize(t,size) <= maxw) return t; while (t.length>4 && f.widthOfTextAtSize(t+"…",size) > maxw) t = t.slice(0,-1); return t.trimEnd()+(F.unicode?"…":"..."); }
+function wrap(F, f, t, size, maxw){
+  const words = safe(F,t).split(" "); const lines=[]; let cur="";
+  for (const w of words){ const tryS = cur ? cur+" "+w : w; if (f.widthOfTextAtSize(tryS,size) > maxw && cur){ lines.push(cur); cur=w; } else cur = tryS; }
+  if (cur) lines.push(cur); return lines;
+}
+
+function buildPlan(){
+  const secs = state.sections.map((s,i) => ({no:i+1, name:s.name.trim(), title:`${i+1}. ${s.name.trim()}`, items:s.items}));
+  const rows = [];
+  for (const s of secs){ rows.push({lvl:1, s}); for (const it of s.items) rows.push({lvl:2, s, it}); }
+  const ROWS = 30, chunks = [[]];
+  for (const r of rows){
+    let cur = chunks[chunks.length-1];
+    if (cur.length >= ROWS){
+      const carry = cur[cur.length-1].lvl === 1 ? [cur.pop()] : [];
+      cur = [...carry]; chunks.push(cur);
+    }
+    cur.push(r);
+  }
+  const nIndex = chunks.length;
+  let pg = 1 + nIndex + 1; // 1-based
+  for (const s of secs){ s.start = s.items.length ? pg : null; for (const it of s.items){ it._start = pg; pg += it.pages; } }
+  return { secs, rows, chunks, nIndex, ROWS, total: pg - 1 };
+}
+
+function drawCover(page, F, logo, plan){
+  const [W,H] = A4, right = W - 48, links = [];
+  const T = (t,x,y,size,f,color) => page.drawText(safe(F,t), {x, y:H-y, size, font:f, color});
+  page.drawRectangle({x:0,y:0,width:14,height:H,color:C.navy});
+  page.drawRectangle({x:14,y:0,width:4,height:H,color:C.red});
+  if (logo) page.drawImage(logo, {x:56, y:H-175, width:128, height:123});
+  const tag = "PQA DOCUMENTATION"; T(tag, right - F.b.widthOfTextAtSize(tag,9), 70, 9, F.b, C.red);
+  const ds = meta.date||""; T(ds, right - F.r.widthOfTextAtSize(safe(F,ds),9), 86, 9, F.r, C.muted);
+  const words = safe(F, meta.title || "Manufacturing Data Record").split(" ").filter(Boolean);
+  let tl = [words.join(" ")], best = Infinity;
+  for (let k = 1; k < words.length; k++){
+    const a = words.slice(0,k).join(" "), b = words.slice(k).join(" ");
+    const m = Math.max(F.x.widthOfTextAtSize(a,34), F.x.widthOfTextAtSize(b,34));
+    if (m < best){ best = m; tl = [a,b]; }
+  }
+  let tsize = 34; while (tl.some(l => F.x.widthOfTextAtSize(l,tsize) > W-56-48) && tsize > 18) tsize -= 1;
+  let y = 238;
+  tl.forEach((l,i) => T(l, 56, y + i*40, tsize, F.x, C.navy));
+  page.drawRectangle({x:56, y:H-(y+62), width:56, height:4, color:C.red});
+  const fields = [["Client",meta.client],["Project",meta.project],["Package",meta.package],["Scope",meta.scope]];
+  const gy = y + 92, colw = (W-104)/2;
+  fields.forEach(([k,v],i) => {
+    const x = 56 + (i%2)*colw, yy = gy + Math.floor(i/2)*44;
+    T(k.toUpperCase(), x, yy, 7.5, F.s, C.muted);
+    wrap(F, F.s, v||"–", 10.5, colw-16).slice(0,2).forEach((l,j) => T(l, x, yy+16+j*13, 10.5, F.s, C.ink));
+  });
+  const cy = gy + 108;
+  T("CONTENTS", 56, cy, 9, F.b, C.navy);
+  page.drawLine({start:{x:56,y:H-(cy+8)}, end:{x:right,y:H-(cy+8)}, thickness:.8, color:C.line});
+  const nS = Math.max(1, plan.secs.length), avail = (H - 66) - (cy + 18) - 18;
+  const rh = Math.min(25.5, nS > 1 ? avail/(nS-1) : 25.5), fs = Math.min(10.5, Math.max(6.5, rh*0.42)), bh = Math.min(18, rh-2);
+  plan.secs.forEach((s,i) => {
+    const ry = cy + 18 + i*rh, have = !!s.items.length, num = String(s.no), name = s.name;
+    const by = ry + bh*0.7;
+    page.drawRectangle({x:56, y:H-(ry+bh), width:22, height:bh, color: have?C.navy:C.pale});
+    T(num, 56 + (22 - F.b.widthOfTextAtSize(num,fs*0.86))/2, by, fs*0.86, F.b, have?C.white:C.muted);
+    T(fitText(F, have?F.s:F.r, name, fs, right-92-90), 92, by, fs, have?F.s:F.r, have?C.ink:C.muted);
+    const label = have ? String(s.start) : "Not included";
+    const lf = have?F.b:F.r, ls = have?fs*0.95:fs*0.8, lx = right - lf.widthOfTextAtSize(label, ls);
+    T(label, lx, by, ls, lf, have?C.navy:C.muted);
+    if (have){
+      page.drawLine({start:{x:92+F.s.widthOfTextAtSize(fitText(F,F.s,name,fs,right-92-90),fs)+8, y:H-(by-0.5)}, end:{x:lx-8, y:H-(by-0.5)}, thickness:.8, color:C.line, dashArray:[1,3]});
+      links.push({rect:[56, H-(ry+rh-3), right, H-(ry-2)], page:s.start-1});
+    }
+    if (i < plan.secs.length-1) page.drawLine({start:{x:92,y:H-(ry+rh-3.5)}, end:{x:right,y:H-(ry+rh-3.5)}, thickness:.6, color:C.pale});
+  });
+  page.drawRectangle({x:14, y:0, width:W-14, height:58, color:C.navy});
+  T("NICON INDUSTRIES A/S", 56, H-26, 9.5, F.b, C.white);
+  T("quality on time", 56 + F.b.widthOfTextAtSize("NICON INDUSTRIES A/S",9.5) + 10, H-26, 8.5, F.r, C.pink);
+  const loc = "Esbjerg, Denmark"; T(loc, right - F.r.widthOfTextAtSize(loc,8.5), H-26, 8.5, F.r, C.paleBlue);
+  return links;
+}
+function drawIndex(page, F, logo, plan, chunk, pIdx){
+  const [W,H] = A4, right = W - 48, links = [];
+  const T = (t,x,y,size,f,color) => page.drawText(safe(F,t), {x, y:H-y, size, font:f, color});
+  page.drawRectangle({x:0,y:H-6,width:W,height:6,color:C.navy});
+  page.drawRectangle({x:0,y:H-8,width:W,height:2,color:C.red});
+  if (logo) page.drawImage(logo, {x:right-44, y:H-72, width:44, height:42});
+  T("Document Index" + (pIdx?" (cont.)":""), 56, 62, 20, F.x, C.navy);
+  T("Click any line to jump to the document", 56, 80, 8.5, F.r, C.muted);
+  let y = 112;
+  for (const r of chunk){
+    if (r.lvl === 1){
+      y += 8; const have = !!r.s.items.length;
+      page.drawRectangle({x:56, y:H-(y+7), width:right-56, height:20, color:C.pale});
+      page.drawRectangle({x:56, y:H-(y+7), width:3, height:20, color: have?C.navy:C.muted});
+      T(r.s.title, 68, y+1, 10.5, F.b, have?C.navy:C.muted);
+      const ps = have ? String(r.s.start) : "Not included", f = have?F.b:F.r, sz = have?10:8.5;
+      T(ps, right-8-f.widthOfTextAtSize(ps,sz), y+1, sz, f, have?C.navy:C.muted);
+      if (have) links.push({rect:[56, H-(y+7), right, H-(y-13)], page:r.s.start-1});
+      y += 24;
+    } else {
+      const x = 76, t = fitText(F, F.r, r.it.title, 9.5, right-40-x);
+      T(t, x, y, 9.5, F.r, C.ink);
+      const ps = String(r.it._start), px = right - F.s.widthOfTextAtSize(ps,9.5);
+      T(ps, px, y, 9.5, F.s, C.ink);
+      page.drawLine({start:{x:x+F.r.widthOfTextAtSize(t,9.5)+6, y:H-(y-.5)}, end:{x:px-6, y:H-(y-.5)}, thickness:.7, color:C.line, dashArray:[1,2.5]});
+      links.push({rect:[56, H-(y+5), right, H-(y-12)], page:r.it._start-1});
+      y += 19;
+    }
+  }
+  return links;
+}
+function stampPageNo(page, F, label){
+  const box = page.getCropBox ? page.getCropBox() : page.getMediaBox();
+  const rot = ((page.getRotation().angle % 360) + 360) % 360;
+  const w = box.width, h = box.height, vw = (rot%180) ? h : w;
+  const size = 7.5, tw = F.s.widthOfTextAtSize(label, size), bw = tw + 12, bh = 13;
+  const vx = vw/2 - bw/2, vy = 4;
+  const map = (px,py) => rot===0 ? [box.x+px, box.y+py] : rot===90 ? [box.x + w - py, box.y + px] : rot===180 ? [box.x + w - px, box.y + h - py] : [box.x + py, box.y + h - px];
+  const [bx,by] = map(vx, vy), [tx,ty] = map(vx+6, vy+3.6);
+  page.drawRectangle({x:bx, y:by, width:bw, height:bh, color:C.white, opacity:.85, rotate:degrees(rot)});
+  page.drawText(label, {x:tx, y:ty, size, font:F.s, color:C.navy, rotate:degrees(rot)});
+}
+function addLink(pdf, page, rect, targetRef){
+  const ctx = pdf.context;
+  const annot = ctx.obj({ Type:"Annot", Subtype:"Link", Rect:rect, Border:[0,0,0], F:4, Dest:[targetRef, PDFName.of("Fit")] });
+  page.node.addAnnot(ctx.register(annot));
+}
+function addOutline(pdf, tree){
+  const ctx = pdf.context, refs = pdf.getPages().map(p=>p.ref);
+  const rootRef = ctx.nextRef();
+  function build(nodes, parentRef){
+    const my = nodes.map(()=>ctx.nextRef());
+    nodes.forEach((n,i) => {
+      const d = { Title: PDFHexString.fromText(n.title), Parent: parentRef, Dest: ctx.obj([refs[Math.min(n.page, refs.length-1)], PDFName.of("Fit")]) };
+      if (i>0) d.Prev = my[i-1];
+      if (i<nodes.length-1) d.Next = my[i+1];
+      if (n.children && n.children.length){
+        const ch = build(n.children, my[i]);
+        d.First = ch[0]; d.Last = ch[ch.length-1]; d.Count = n.open ? n.children.length : -n.children.length;
+      }
+      ctx.assign(my[i], ctx.obj(d));
+    });
+    return my;
+  }
+  const top = build(tree, rootRef);
+  ctx.assign(rootRef, ctx.obj({ Type:"Outlines", First: top[0], Last: top[top.length-1], Count: top.length }));
+  pdf.catalog.set(PDFName.of("Outlines"), rootRef);
+  pdf.catalog.set(PDFName.of("PageMode"), PDFName.of("UseOutlines"));
+}
+function subTree(it, base){
+  const root = []; const stack = [{depth:0, children:root}];
+  for (const s of it.subs){
+    if (!s.title.trim()) continue;
+    const node = {title:s.title.trim(), page: base + Math.min(Math.max(1,s.page), it.pages) - 1, children:[], open:false};
+    while (stack.length>1 && stack[stack.length-1].depth >= s.depth) stack.pop();
+    stack[stack.length-1].children.push(node);
+    stack.push({depth:s.depth, children:node.children});
+  }
+  return root;
+}
+async function findHighlightRects(it){
+  const out = []; if (!it.hl.length) return out;
+  const doc = await pdfjsLib.getDocument({data: it.bytes.slice(), isEvalSupported:false}).promise;
+  try {
+    for (let p=1; p<=Math.min(doc.numPages,40); p++){
+      const page = await doc.getPage(p);
+      const anns = (await page.getAnnotations().catch(()=>[])).filter(a => ["Highlight","Ink","Square"].includes(a.subtype)).map(a => a.rect);
+      const tc = await page.getTextContent();
+      for (const item of tc.items){
+        const s = item.str; if (!s) continue;
+        for (const v of it.hl){
+          const at = s.indexOf(v); if (at < 0) continue;
+          const [a,b,c,d,e,f] = item.transform;
+          const fh = Math.hypot(c,d) || Math.abs(d) || 8;
+          if (Math.abs(b) > 0.01) continue; // skip rotated text
+          const cw = item.width / Math.max(1, s.length);
+          const x1 = e + cw*at, x2 = x1 + cw*v.length, y1 = f - fh*0.22, y2 = f + fh*0.9;
+          const hit = anns.some(r => !(x2 < Math.min(r[0],r[2]) || x1 > Math.max(r[0],r[2]) || y2 < Math.min(r[1],r[3]) || y1 > Math.max(r[1],r[3])));
+          if (!hit) out.push({page:p-1, x:x1-1, y:y1, w:(x2-x1)+2, h:y2-y1});
+          break;
+        }
+      }
+    }
+  } finally { doc.destroy(); }
+  return out;
+}
+
+async function buildPdf({coverOnly=false}={}){
+  const plan = buildPlan();
+  const out = await PDFDocument.create();
+  const F = await setupFonts(out);
+  const logo = await out.embedPng(Uint8Array.from(atob(LOGO_B64), c=>c.charCodeAt(0)));
+  const cover = out.addPage(A4);
+  const coverLinks = drawCover(cover, F, logo, plan);
+  if (coverOnly) return out;
+  const idxPages = [], idxLinks = [];
+  for (let k=0; k<plan.nIndex; k++){
+    const p = out.addPage(A4); idxPages.push(p);
+    idxLinks.push(drawIndex(p, F, logo, plan, plan.chunks[k], k));
+  }
+  const items = plan.secs.flatMap(s=>s.items);
+  let n = 0;
+  for (const it of items){
+    busy(true, `Samler ${it.fileName}`, n/items.length*0.85);
+    const src = await PDFDocument.load(it.bytes, {ignoreEncryption:true, updateMetadata:false});
+    const copied = await out.copyPages(src, src.getPageIndices());
+    const rects = await findHighlightRects(it).catch(()=>[]);
+    copied.forEach((p,i) => {
+      out.addPage(p);
+      for (const r of rects.filter(r=>r.page===i)) p.drawRectangle({x:r.x, y:r.y, width:r.w, height:r.h, color:rgb(1,.92,.1), opacity:.45, blendMode:BlendMode.Multiply});
+    });
+    n++;
+    await new Promise(r=>setTimeout(r,0));
+  }
+  busy(true, "Sidetal, links og bogmærker…", .9);
+  const pages = out.getPages(), total = pages.length;
+  for (let i=1;i<total;i++) stampPageNo(pages[i], F, `Page ${i+1} of ${total}`);
+  for (const l of coverLinks) addLink(out, cover, l.rect, pages[l.page].ref);
+  idxLinks.forEach((ls,k) => ls.forEach(l => addLink(out, idxPages[k], l.rect, pages[l.page].ref)));
+  const tree = [
+    {title:`PQA - ${pqaCore()}`, page:0},
+    {title:"Document Index", page:1, open:false, children: plan.secs.filter(s=>s.items.length).map(s => ({
+      title:s.title, page:s.start-1, open:false,
+      children: s.items.map(it => ({title:(it.title||it.fileName).trim(), page:it._start-1, open:false, children: subTree(it, it._start-1)}))
+    }))}
+  ];
+  addOutline(out, tree);
+  out.setTitle(`PQA - ${pqaCore()}`); out.setAuthor("Nicon Industries A/S"); out.setCreator("PQA Builder"); out.setProducer("PQA Builder");
+  return out;
+}
+
+/* ================= cover preview ================= */
+let coverTimer = null, coverBusy = false, coverAgain = false;
+function scheduleCover(){ clearTimeout(coverTimer); coverTimer = setTimeout(renderCover, 350); }
+async function renderCover(){
+  if (coverBusy){ coverAgain = true; return; }
+  coverBusy = true;
+  try {
+    const doc = await buildPdf({coverOnly:true});
+    const bytes = await doc.save();
+    const pdf = await pdfjsLib.getDocument({data:bytes, isEvalSupported:false}).promise;
+    const page = await pdf.getPage(1);
+    const cv = $("coverCanvas"), scale = 2;
+    const vp = page.getViewport({scale});
+    cv.width = vp.width; cv.height = vp.height;
+    await page.render({canvasContext: cv.getContext("2d"), viewport: vp}).promise;
+    pdf.destroy();
+  } catch(e){ console.error(e); }
+  coverBusy = false;
+  if (coverAgain){ coverAgain = false; renderCover(); }
+}
+
+/* ================= validation ================= */
+function validate(){
+  const issues = []; // {lvl, msg, where, fix}
+  const items = allItems();
+  if (!items.length) issues.push({lvl:"err", msg:"Der er ingen filer i sektionerne."});
+  if (!pqaCore()) issues.push({lvl:"err", msg:"PQA navn mangler (forsiden og filnavnet)."});
+  for (const k of ["client","project","package","scope"]) if (!meta[k]) issues.push({lvl:"warn", msg:`Forsidefeltet "${k[0].toUpperCase()+k.slice(1)}" er tomt.`});
+  if (state.unsorted.items.length) issues.push({lvl:"warn", msg:`${state.unsorted.items.length} fil(er) er ikke placeret i en sektion og kommer ikke med.`, where: state.unsorted.items.map(i=>i.fileName).join(", ")});
+  if (state.skipped.length) issues.push({lvl:"info", msg:`Gamle samlede sektionsfiler blev sprunget over.`, where: state.skipped.join(", ")});
+  for (const s of state.sections){
+    const where = `${pos(s)}. ${s.name}`;
+    if (!s.name.trim()) issues.push({lvl:"err", msg:"Sektionen har intet navn.", where:`Sektion ${pos(s)}`});
+    { const c = cosmeticIssues(s.name); if (c.length) issues.push({lvl:"warn", msg:`Sektionsnavn: ${c.join(", ")}`, where, fix:{type:"sec", no:s.no}}); }
+    if (state.sections.filter(x=>x.name.trim().toLowerCase()===s.name.trim().toLowerCase()).length>1) issues.push({lvl:"warn", msg:"To sektioner har samme navn.", where});
+    if (!s.items.length) issues.push({lvl:"warn", msg:`Sektionen er tom – vises som "Not included".`, where});
+    const seen = new Map();
+    let lastFrame = 0, sawCert = false;
+    s.items.forEach((it, idx) => {
+      const w = `${where} › ${it.title || it.fileName}`;
+      for (const e of it.errors) issues.push({lvl:"err", msg:e, where:w});
+      if (it.encrypted) issues.push({lvl:"warn", msg:"Filen er krypteret – indholdet kan blive forkert i den samlede fil.", where:w});
+      if (!it.title.trim()) issues.push({lvl:"err", msg:"Bogmærket er tomt.", where:`${where} › ${it.fileName}`});
+      const cos = cosmeticIssues(it.title);
+      if (cos.length) issues.push({lvl:"warn", msg:`Stavning/format: ${cos.join(", ")}`, where:w, fix:{type:"title", id:it.id}});
+      if (/\b(temp|temporary|draft|midlertidig|udkast)\b/i.test(it.title + " " + it.fileName)) issues.push({lvl:"warn", msg:"Midlertidigt dokument – husk at udskifte før aflevering.", where:w});
+      const key = it.title.trim().toLowerCase(); if (seen.has(key)) issues.push({lvl:"warn", msg:"Samme bogmærke findes flere gange i sektionen.", where:w}); seen.set(key,1);
+      if (seen.size && items.filter(x=>x.fileName===it.fileName && x.size===it.size).length > 1 && idx===s.items.indexOf(it)) {}
+      const fr = frameNum(it.fileName + " " + it.title);
+      if (fr){ if (fr < lastFrame) issues.push({lvl:"warn", msg:`Frame ${fr} ligger efter Frame ${lastFrame} – rækkefølgen er ikke samlet pr. ramme.`, where:w}); lastFrame = Math.max(lastFrame, fr); }
+      if (s.rule === 7){ if (isNdtCert(it.title)) sawCert = true; else if (sawCert && isNdtReport(it.title)) issues.push({lvl:"warn", msg:"NDT-rapport ligger efter certifikater (rapporter skal stå først).", where:w}); }
+      if (s.rule === 8 && !/^welder id\s+\S+/i.test(it.title)) issues.push({lvl:"warn", msg:'Svejsercertifikat uden "Welder ID <nr>" i bogmærket.', where:w});
+      if (s.rule === 5 && !/overview|concession|\bcr-\d|deviation/i.test(it.title)){
+        const cert = it.subs.find(x=>/^certificate no\./i.test(x.title));
+        if (!cert || !cert.title.replace(/^certificate no\.\s*/i,"").trim()) issues.push({lvl:"warn", msg:"Certificate No. mangler i underbogmærket.", where:w});
+        else if (cert.needsCheck) issues.push({lvl:"info", msg:`${cert.title} er fundet automatisk${cert.src?` i ${cert.src}`:""} – kontroller at det er korrekt.`, where:w});
+        if (!it.subs.some(x=>/^(plate|heat|batch) no\.\s*\S/i.test(x.title))) issues.push({lvl:"warn", msg:"Plate/Heat No. mangler – navngiv filen fx \"PL20 - 04788\".", where:w});
+      }
+      it.subs.forEach((sb,k) => {
+        const ws = `${w} › ${sb.title || "(tomt underbogmærke)"}`;
+        if (!sb.title.trim()) issues.push({lvl:"warn", msg:"Tomt underbogmærke – springes over.", where:ws});
+        if (sb.page < 1 || sb.page > it.pages) issues.push({lvl:"err", msg:`Underbogmærke peger på side ${sb.page}, men filen har ${it.pages} sider.`, where:ws});
+        const c2 = cosmeticIssues(sb.title); if (c2.length) issues.push({lvl:"warn", msg:`Stavning/format: ${c2.join(", ")}`, where:ws, fix:{type:"sub", id:it.id, k}});
+      });
+    });
+  }
+  const cm = cosmeticIssues(meta.title + " " + meta.project + " " + meta.package + " " + meta.scope);
+  if (cm.length) issues.push({lvl:"warn", msg:`Forside: ${cm.join(", ")}`, fix:{type:"meta"}});
+  const mb = items.reduce((a,i)=>a+i.size,0)/1048576;
+  if (mb > 150) issues.push({lvl:"info", msg:`Samlet ca. ${Math.round(mb)} MB – det kan tage lidt tid og kræve meget hukommelse.`});
+  return issues;
+}
+function applyFix(fx){
+  if (!fx) return;
+  if (fx.type === "title"){ const it = findItem(fx.id).item; it.title = tidy(it.title); }
+  if (fx.type === "sub"){ const sb = findItem(fx.id).item.subs[fx.k]; if (sb) sb.title = tidy(sb.title); }
+  if (fx.type === "sec"){ const sc = secOf(fx.no); sc.name = tidy(sc.name); saveLayout(); }
+  if (fx.type === "meta"){ for (const k of ["title","project","package","scope"]) meta[k] = tidy(meta[k]); fillMeta(); }
+}
+let currentIssues = [];
+function openCheck(){
+  currentIssues = validate();
+  const errs = currentIssues.filter(i=>i.lvl==="err").length, warns = currentIssues.filter(i=>i.lvl==="warn").length;
+  $("mTitle").textContent = errs ? "Der er fejl der skal rettes" : (warns ? "Tjek før download" : "Alt ser godt ud ✓");
+  const plan = buildPlan();
+  $("mSub").textContent = `${errs} fejl · ${warns} advarsler · ${plan.total} sider · ${outFileName()}`;
+  const order = {err:0, warn:1, info:2};
+  $("mList").innerHTML = currentIssues.length ? currentIssues.map((x,i)=>({...x,i})).sort((a,b)=>order[a.lvl]-order[b.lvl]).map(x =>
+    `<div class="issue ${x.lvl}"><span class="dot"></span><div><div>${esc(x.msg)}</div>${x.where?`<div class="where">${esc(x.where)}</div>`:""}</div>
+     ${x.fix?`<button class="btn sm fix" data-fix="${x.i}">Ret</button>`:""}</div>`).join("") : `<div class="issue info"><span class="dot"></span><div>Ingen fejl eller advarsler fundet.</div></div>`;
+  $("mGo").disabled = errs > 0;
+  $("mGo").textContent = warns ? "Download alligevel" : "Download";
+  $("mFixAll").style.display = currentIssues.some(x=>x.fix) ? "" : "none";
+  $("modal").classList.add("show");
+}
+$("mList").addEventListener("click", e => { const b = e.target.closest("[data-fix]"); if (!b) return; applyFix(currentIssues[+b.dataset.fix].fix); render(); openCheck(); });
+$("mFixAll").onclick = () => { currentIssues.forEach(x=>applyFix(x.fix)); render(); openCheck(); };
+$("mBack").onclick = () => $("modal").classList.remove("show");
+$("btnDownload").onclick = openCheck;
+$("mGo").onclick = async () => {
+  $("modal").classList.remove("show");
+  try {
+    busy(true, "Henter skrifttyper…", 0);
+    const pdf = await buildPdf();
+    busy(true, "Gemmer PDF…", .96);
+    const bytes = await pdf.save({useObjectStreams:true});
+    const url = URL.createObjectURL(new Blob([bytes], {type:"application/pdf"}));
+    const a = document.createElement("a"); a.href = url; a.download = outFileName(); document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  } catch(e){
+    console.error(e); alert("Kunne ikke lave PDF'en: " + (e && e.message || e));
+  } finally { busy(false); }
+};
+
+fillMeta(); render();
+</script>
+</body>
+</html>
