@@ -84,6 +84,10 @@ main{max-width:1400px;margin:0 auto;padding:20px;display:grid;grid-template-colu
 .field input{width:100%;background:#141811;border:1px solid var(--line);border-radius:6px;padding:7px 9px}
 .field input:focus{outline:none;border-color:var(--teal)}
 .field .auto{font-size:10px;color:var(--teal);float:right;text-transform:none}
+.checks{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+.chk{display:flex;gap:9px;align-items:flex-start;padding:5px 0;cursor:pointer;font-size:13px}
+.chk input{accent-color:var(--lime);width:16px;height:16px;margin:1px 0 0;flex:none}
+.chk.sub{margin-left:24px;color:var(--muted)} .chk.disabled{opacity:.4;pointer-events:none}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 #coverCanvas{width:100%;border-radius:4px;background:#fff;display:block;box-shadow:0 8px 30px rgba(0,0,0,.4)}
 .outname{font-family:"Space Mono";font-size:12px;color:var(--muted);margin-top:8px;word-break:break-all}
@@ -163,6 +167,10 @@ main{max-width:1400px;margin:0 auto;padding:20px;display:grid;grid-template-colu
       <div class="field"><label>Project</label><input id="m_project"></div>
       <div class="field"><label>Package</label><input id="m_package"></div>
       <div class="field"><label>Scope</label><input id="m_scope"></div>
+      <div class="checks">
+        <label class="chk"><input type="checkbox" id="opt_dividers"> <span>Skilleside for hver sektion</span></label>
+        <label class="chk sub" id="optEmptyWrap"><input type="checkbox" id="opt_empty"> <span>Medtag tomme sektioner som <i>"Not applicable"</i></span></label>
+      </div>
     </div>
   </aside>
 </main>
@@ -269,6 +277,8 @@ const META_KEYS = ["name","title","client","date","project","package","scope"];
 const meta = { name:"", title:"Manufacturing Data Record", client:"", date:todayStr(), project:"", package:"", scope:"" };
 const metaAuto = { name:"", client:"", project:"", package:"", scope:"" };
 const metaTouched = {};
+const opts = { dividers:true, dividersEmpty:true };
+try { const o = JSON.parse(localStorage.getItem("pqa_opts")||"{}"); if (typeof o.dividers==="boolean") opts.dividers=o.dividers; if (typeof o.dividersEmpty==="boolean") opts.dividersEmpty=o.dividersEmpty; } catch(e){}
 try { const saved = JSON.parse(localStorage.getItem("pqa_meta")||"{}"); for (const k of ["title","client","project","package"]) if (saved[k]) { meta[k]=saved[k]; metaTouched[k]=true; } } catch(e){}
 function todayStr(){ const d=new Date(); return `${String(d.getDate()).padStart(2,"0")}-${String(d.getMonth()+1).padStart(2,"0")}-${d.getFullYear()}`; }
 const allItems = () => state.sections.flatMap(s=>s.items);
@@ -611,6 +621,13 @@ $("btnCloseAll").onclick = () => { [...state.sections, state.unsorted].forEach(s
 $("btnSuggest").onclick = () => { for (const s of state.sections) s.items.sort((a,b)=>cmpKey(sortKey(s.rule,a), sortKey(s.rule,b))); render(); };
 $("btnReset").onclick = () => { if (!allItems().length && !state.unsorted.items.length) return; state.sections.forEach(s=>s.items=[]); state.unsorted.items=[]; state.skipped=[]; render(); };
 
+function syncOpts(){
+  $("opt_dividers").checked = opts.dividers; $("opt_empty").checked = opts.dividersEmpty;
+  $("optEmptyWrap").classList.toggle("disabled", !opts.dividers);
+}
+$("opt_dividers").addEventListener("change", e => { opts.dividers = e.target.checked; saveOpts(); });
+$("opt_empty").addEventListener("change", e => { opts.dividersEmpty = e.target.checked; saveOpts(); });
+function saveOpts(){ try { localStorage.setItem("pqa_opts", JSON.stringify(opts)); } catch(e){} syncOpts(); scheduleCover(); }
 function fillMeta(){
   for (const k of META_KEYS){ const el = $("m_"+k); if (document.activeElement !== el) el.value = meta[k]||""; }
   $("autoTag").textContent = !metaTouched.name && metaAuto.name && meta.name===metaAuto.name ? "foreslået automatisk" : "";
@@ -681,7 +698,12 @@ function buildPlan(){
   }
   const nIndex = chunks.length;
   let pg = 1 + nIndex + 1; // 1-based
-  for (const s of secs){ s.start = s.items.length ? pg : null; for (const it of s.items){ it._start = pg; pg += it.pages; } }
+  for (const s of secs){
+    s.divider = opts.dividers && (s.items.length > 0 || opts.dividersEmpty);
+    s.start = s.divider ? pg : (s.items.length ? pg : null);
+    if (s.divider) pg += 1;
+    for (const it of s.items){ it._start = pg; pg += it.pages; }
+  }
   return { secs, rows, chunks, nIndex, ROWS, total: pg - 1 };
 }
 
@@ -722,9 +744,10 @@ function drawCover(page, F, logo, plan){
     page.drawRectangle({x:56, y:H-(ry+bh), width:22, height:bh, color: have?C.navy:C.pale});
     T(num, 56 + (22 - F.b.widthOfTextAtSize(num,fs*0.86))/2, by, fs*0.86, F.b, have?C.white:C.muted);
     T(fitText(F, have?F.s:F.r, name, fs, right-92-90), 92, by, fs, have?F.s:F.r, have?C.ink:C.muted);
-    const label = have ? String(s.start) : "Not included";
+    const label = have ? String(s.start) : (s.divider ? "Not applicable" : "Not included");
     const lf = have?F.b:F.r, ls = have?fs*0.95:fs*0.8, lx = right - lf.widthOfTextAtSize(label, ls);
     T(label, lx, by, ls, lf, have?C.navy:C.muted);
+    if (!have && s.divider) links.push({rect:[56, H-(ry+rh-3), right, H-(ry-2)], page:s.start-1});
     if (have){
       page.drawLine({start:{x:92+F.s.widthOfTextAtSize(fitText(F,F.s,name,fs,right-92-90),fs)+8, y:H-(by-0.5)}, end:{x:lx-8, y:H-(by-0.5)}, thickness:.8, color:C.line, dashArray:[1,3]});
       links.push({rect:[56, H-(ry+rh-3), right, H-(ry-2)], page:s.start-1});
@@ -752,9 +775,9 @@ function drawIndex(page, F, logo, plan, chunk, pIdx){
       page.drawRectangle({x:56, y:H-(y+7), width:right-56, height:20, color:C.pale});
       page.drawRectangle({x:56, y:H-(y+7), width:3, height:20, color: have?C.navy:C.muted});
       T(r.s.title, 68, y+1, 10.5, F.b, have?C.navy:C.muted);
-      const ps = have ? String(r.s.start) : "Not included", f = have?F.b:F.r, sz = have?10:8.5;
+      const ps = have ? String(r.s.start) : (r.s.divider ? "Not applicable" : "Not included"), f = have?F.b:F.r, sz = have?10:8.5;
       T(ps, right-8-f.widthOfTextAtSize(ps,sz), y+1, sz, f, have?C.navy:C.muted);
-      if (have) links.push({rect:[56, H-(y+7), right, H-(y-13)], page:r.s.start-1});
+      if (r.s.start) links.push({rect:[56, H-(y+7), right, H-(y-13)], page:r.s.start-1});
       y += 24;
     } else {
       const x = 76, t = fitText(F, F.r, r.it.title, 9.5, right-40-x);
@@ -766,6 +789,51 @@ function drawIndex(page, F, logo, plan, chunk, pIdx){
       y += 19;
     }
   }
+  return links;
+}
+function drawDivider(page, F, logo, s){
+  const [W,H] = A4, right = W - 48, links = [];
+  const T = (t,x,y,size,f,color) => page.drawText(safe(F,t), {x, y:H-y, size, font:f, color});
+  const have = s.items.length > 0;
+  page.drawRectangle({x:0,y:0,width:14,height:H,color:C.navy});
+  page.drawRectangle({x:14,y:0,width:4,height:H,color:C.red});
+  if (logo) page.drawImage(logo, {x:right-52, y:H-102, width:52, height:50});
+  T("PQA - " + pqaCore(), 56, 74, 9, F.b, C.red);
+  T(meta.title || "Manufacturing Data Record", 56, 88, 8.5, F.r, C.muted);
+  const numStr = String(s.no).padStart(2,"0");
+  T(numStr, 50, 300, 120, F.x, C.pale);
+  T("SECTION " + s.no, 56, 330, 10, F.b, C.red);
+  const nameLines = wrap(F, F.x, s.name || "", 30, right-56).slice(0,3);
+  nameLines.forEach((l,i) => T(l, 56, 368 + i*36, 30, F.x, C.navy));
+  let y = 368 + (nameLines.length-1)*36 + 22;
+  page.drawRectangle({x:56, y:H-(y+4), width:56, height:4, color:C.red});
+  y += 44;
+  if (!have){
+    T("Not applicable", 56, y, 16, F.b, C.muted);
+    T("No documents are included in this section.", 56, y+20, 10, F.r, C.muted);
+  } else {
+    const pages = s.items.reduce((a,i)=>a+i.pages,0);
+    T(`CONTENTS OF THIS SECTION  ·  ${s.items.length} document${s.items.length>1?"s":""}  ·  ${pages} page${pages>1?"s":""}`, 56, y, 8.5, F.b, C.navy);
+    page.drawLine({start:{x:56,y:H-(y+8)}, end:{x:right,y:H-(y+8)}, thickness:.8, color:C.line});
+    y += 26;
+    const bottom = H - 90, n = s.items.length;
+    let rh = Math.min(20, Math.max(11, (bottom - y) / n)), fs = Math.min(10, rh*0.5);
+    const maxRows = Math.floor((bottom - y) / rh);
+    const shown = n > maxRows ? s.items.slice(0, maxRows-1) : s.items;
+    for (const it of shown){
+      const t = fitText(F, F.r, it.title || it.fileName, fs, right-56-60);
+      T(t, 56, y, fs, F.r, C.ink);
+      const ps = String(it._start), px = right - F.s.widthOfTextAtSize(ps, fs);
+      T(ps, px, y, fs, F.s, C.navy);
+      page.drawLine({start:{x:56+F.r.widthOfTextAtSize(t,fs)+6, y:H-(y-.5)}, end:{x:px-6, y:H-(y-.5)}, thickness:.7, color:C.line, dashArray:[1,2.5]});
+      links.push({rect:[56, H-(y+rh*0.3), right, H-(y-rh*0.7)], page:it._start-1});
+      y += rh;
+    }
+    if (shown.length < n) T(`+ ${n - shown.length} more – see bookmarks`, 56, y, fs, F.r, C.muted);
+  }
+  page.drawRectangle({x:14, y:0, width:W-14, height:40, color:C.navy});
+  T("NICON INDUSTRIES A/S", 56, H-17, 8.5, F.b, C.white);
+  T("quality on time", 56 + F.b.widthOfTextAtSize("NICON INDUSTRIES A/S",8.5) + 10, H-17, 8, F.r, C.pink);
   return links;
 }
 function stampPageNo(page, F, label){
@@ -858,8 +926,11 @@ async function buildPdf({coverOnly=false}={}){
     idxLinks.push(drawIndex(p, F, logo, plan, plan.chunks[k], k));
   }
   const items = plan.secs.flatMap(s=>s.items);
+  const divLinks = [];
   let n = 0;
-  for (const it of items){
+  for (const sec of plan.secs){
+   if (sec.divider){ const dp = out.addPage(A4); divLinks.push({page:dp, links: drawDivider(dp, F, logo, sec)}); }
+   for (const it of sec.items){
     busy(true, `Samler ${it.fileName}`, n/items.length*0.85);
     const src = await PDFDocument.load(it.bytes, {ignoreEncryption:true, updateMetadata:false});
     const copied = await out.copyPages(src, src.getPageIndices());
@@ -870,15 +941,17 @@ async function buildPdf({coverOnly=false}={}){
     });
     n++;
     await new Promise(r=>setTimeout(r,0));
+   }
   }
   busy(true, "Sidetal, links og bogmærker…", .9);
   const pages = out.getPages(), total = pages.length;
   for (let i=1;i<total;i++) stampPageNo(pages[i], F, `Page ${i+1} of ${total}`);
   for (const l of coverLinks) addLink(out, cover, l.rect, pages[l.page].ref);
   idxLinks.forEach((ls,k) => ls.forEach(l => addLink(out, idxPages[k], l.rect, pages[l.page].ref)));
+  divLinks.forEach(d => d.links.forEach(l => addLink(out, d.page, l.rect, pages[l.page].ref)));
   const tree = [
     {title:`PQA - ${pqaCore()}`, page:0},
-    {title:"Document Index", page:1, open:false, children: plan.secs.filter(s=>s.items.length).map(s => ({
+    {title:"Document Index", page:1, open:false, children: plan.secs.filter(s=>s.start).map(s => ({
       title:s.title, page:s.start-1, open:false,
       children: s.items.map(it => ({title:(it.title||it.fileName).trim(), page:it._start-1, open:false, children: subTree(it, it._start-1)}))
     }))}
@@ -923,7 +996,7 @@ function validate(){
     if (!s.name.trim()) issues.push({lvl:"err", msg:"Sektionen har intet navn.", where:`Sektion ${pos(s)}`});
     { const c = cosmeticIssues(s.name); if (c.length) issues.push({lvl:"warn", msg:`Sektionsnavn: ${c.join(", ")}`, where, fix:{type:"sec", no:s.no}}); }
     if (state.sections.filter(x=>x.name.trim().toLowerCase()===s.name.trim().toLowerCase()).length>1) issues.push({lvl:"warn", msg:"To sektioner har samme navn.", where});
-    if (!s.items.length) issues.push({lvl:"warn", msg:`Sektionen er tom – vises som "Not included".`, where});
+    if (!s.items.length) issues.push({lvl:"warn", msg: opts.dividers && opts.dividersEmpty ? `Sektionen er tom – får en "Not applicable"-skilleside.` : `Sektionen er tom – vises som "Not included".`, where});
     const seen = new Map();
     let lastFrame = 0, sawCert = false;
     s.items.forEach((it, idx) => {
@@ -956,6 +1029,7 @@ function validate(){
   }
   const cm = cosmeticIssues(meta.title + " " + meta.project + " " + meta.package + " " + meta.scope);
   if (cm.length) issues.push({lvl:"warn", msg:`Forside: ${cm.join(", ")}`, fix:{type:"meta"}});
+  if (opts.dividers){ const nd = buildPlan().secs.filter(x=>x.divider).length; issues.push({lvl:"info", msg:`${nd} skillesider tilføjes${opts.dividersEmpty?" (tomme sektioner som \"Not applicable\")":""}.`}); }
   const mb = items.reduce((a,i)=>a+i.size,0)/1048576;
   if (mb > 150) issues.push({lvl:"info", msg:`Samlet ca. ${Math.round(mb)} MB – det kan tage lidt tid og kræve meget hukommelse.`});
   return issues;
@@ -1002,7 +1076,7 @@ $("mGo").onclick = async () => {
   } finally { busy(false); }
 };
 
-fillMeta(); render();
+syncOpts(); fillMeta(); render();
 </script>
 </body>
 </html>
