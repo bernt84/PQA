@@ -43,6 +43,7 @@ main{max-width:1400px;margin:0 auto;padding:20px;display:grid;grid-template-colu
 .drop h2{margin:0 0 6px;font-size:17px}
 .drop p{margin:0 0 14px;color:var(--muted)}
 .drop .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.note{margin-top:12px;padding:9px 12px;border:1px solid var(--teal2);background:#12201d;border-radius:8px;font-size:13px;color:#bfe9e1}
 .toolbar{display:flex;gap:8px;align-items:center;margin:16px 0 10px;flex-wrap:wrap}
 .toolbar .hint{color:var(--muted);font-size:12px}
 .sec{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
@@ -59,15 +60,22 @@ main{max-width:1400px;margin:0 auto;padding:20px;display:grid;grid-template-colu
 .secbody.over{background:#1c2413}
 .item{border:1px solid var(--line);background:var(--panel2);border-radius:8px;margin:6px 0;padding:8px 8px 8px 4px}
 .item.dragging{opacity:.4}
+.sec.secdrop{box-shadow:0 -3px 0 var(--lime)}
+.sechandle{font-size:14px}
 .item.dropbefore{box-shadow:0 -3px 0 var(--lime)}
 .irow{display:flex;align-items:center;gap:6px}
-.handle{cursor:grab;color:var(--dim);padding:0 6px;font-size:16px;line-height:1}
+body.dragging-now{user-select:none;cursor:grabbing}
+body.dragging-now .handle{cursor:grabbing}
+.handle{cursor:grab;touch-action:none;color:var(--dim);padding:0 6px;font-size:16px;line-height:1}
 .ititle{flex:1;min-width:0;background:transparent;border:1px solid transparent;border-radius:6px;padding:5px 7px;font-weight:600}
 .ititle:hover{border-color:var(--line2)} .ititle:focus{outline:none;border-color:var(--teal);background:#141811}
 .pg{font-family:"Space Mono";font-size:11px;color:var(--muted);white-space:nowrap}
 .fname{font-family:"Space Mono";font-size:11px;color:var(--dim);margin:2px 0 0 30px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .flag{font-family:"Space Mono";font-size:10px;padding:1px 6px;border-radius:99px;border:1px solid}
 .flag.warn{color:var(--amber);border-color:#6b5520} .flag.err{color:var(--red);border-color:#6b2a22}
+.sugg{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 0 30px;padding:5px 8px;border:1px solid #4a5a2a;background:#1b2114;border-radius:7px;font-size:12.5px}
+.sugg .lbl{font-family:"Space Mono";font-size:10px;color:var(--lime);text-transform:uppercase;letter-spacing:.06em}
+.chk-warn{margin:5px 0 0 30px;font-size:12px;color:var(--amber)}
 .subs{margin:6px 0 0 30px;border-left:1px dashed var(--line2);padding-left:10px}
 .sub{display:flex;gap:6px;align-items:center;margin:3px 0}
 .sub input.t{flex:1;min-width:0;background:#141811;border:1px solid var(--line);border-radius:5px;padding:3px 7px;font-size:13px}
@@ -142,6 +150,7 @@ main{max-width:1400px;margin:0 auto;padding:20px;display:grid;grid-template-colu
       <input type="file" id="inFiles" accept="application/pdf,.pdf" multiple hidden>
       <input type="file" id="inSection" accept="application/pdf,.pdf" multiple hidden>
     </div>
+    <div class="note" id="note" style="display:none"></div>
     <div class="toolbar">
       <button class="btn sm" id="btnOpenAll">Fold alle ud</button>
       <button class="btn sm" id="btnCloseAll">Fold alle sammen</button>
@@ -258,6 +267,123 @@ function sortKey(secNo, it){
 }
 const cmpKey = (a,b) => { for (let i=0;i<a.length;i++){ if (a[i]<b[i]) return -1; if (a[i]>b[i]) return 1; } return 0; };
 
+/* ================= gemmer i browseren (IndexedDB) ================= */
+const DB_NAME = "pqa_builder";
+let dbP = null, storeWarned = false;
+function db(){
+  if (!dbP) dbP = new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = () => { const d = r.result; if (!d.objectStoreNames.contains("files")) d.createObjectStore("files"); if (!d.objectStoreNames.contains("state")) d.createObjectStore("state"); };
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+  return dbP;
+}
+function idbTx(store, mode, fn){
+  return db().then(d => new Promise((res, rej) => {
+    const tx = d.transaction(store, mode), req = fn(tx.objectStore(store));
+    tx.oncomplete = () => res(req && req.result); tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error);
+  }));
+}
+const idbPut = (store, key, val) => idbTx(store, "readwrite", os => os.put(val, key));
+const idbGet = (store, key) => idbTx(store, "readonly", os => os.get(key));
+const idbDel = (store, key) => idbTx(store, "readwrite", os => os.delete(key));
+const idbClear = store => idbTx(store, "readwrite", os => os.clear());
+const fileKey = f => `${f.name}|${f.size}|${f.lastModified || 0}`;
+async function keepBytes(it){
+  try { await idbPut("files", it.key, it.bytes); }
+  catch(e){
+    if (!storeWarned){ storeWarned = true; note(`Filerne kunne ikke gemmes i browseren (${e && e.name || "fejl"}). Opsætningen huskes, men filerne skal tilføjes igen næste gang.`); }
+  }
+}
+let saveTimer = null;
+function saveSoon(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveState, 600); }
+function serItems(list){
+  return list.map(it => ({key:it.key, fileName:it.fileName, size:it.size, pages:it.pages, title:it.title, subs:it.subs,
+    hl:it.hl, matId:it.matId, suggest:it.suggest, suggestDone:!!it.suggestDone, checks:it.checks, errors:it.errors,
+    encrypted:!!it.encrypted, text1:(it.text1||"").slice(0,4000), overview:it.overview}));
+}
+async function saveState(){
+  try {
+    await idbPut("state", "session", { v:1, when:Date.now(), meta, metaTouched, opts,
+      sections: state.sections.map(x => ({name:x.name, rule:x.rule, open:x.open, items:serItems(x.items)})),
+      unsorted: serItems(state.unsorted.items), skipped: state.skipped });
+  } catch(e){ /* best effort */ }
+}
+function deItem(d, bytes){
+  return {id:++uid, key:d.key, file:null, fileName:d.fileName, size:d.size, bytes: bytes ? new Uint8Array(bytes) : null,
+    pages:d.pages||0, title:d.title||"", subs:d.subs||[], hl:d.hl||[], matId:d.matId, suggest:d.suggest||"",
+    suggestDone:!!d.suggestDone, checks:d.checks||[], errors:d.errors||[], encrypted:!!d.encrypted,
+    text1:d.text1||"", overview:d.overview, missing: !bytes};
+}
+async function restoreSession(){
+  let st = null;
+  try { st = await idbGet("state", "session"); } catch(e){ return false; }
+  if (!st || !st.sections) return false;
+  Object.assign(meta, st.meta || {}); Object.assign(metaTouched, st.metaTouched || {}); Object.assign(opts, st.opts || {});
+  const rebuild = async arr => {
+    const out = [];
+    for (const d of arr || []){
+      let bytes = null;
+      try { bytes = await idbGet("files", d.key); } catch(e){}
+      out.push(deItem(d, bytes));
+    }
+    return out;
+  };
+  state.sections = st.sections.map(x => ({no: ++secUid, rule:x.rule||0, name:x.name||"", items:[], open: x.open !== false}));
+  for (let i = 0; i < state.sections.length; i++) state.sections[i].items = await rebuild(st.sections[i].items);
+  state.unsorted.items = await rebuild(st.unsorted);
+  state.skipped = st.skipped || [];
+  const missing = allItems().concat(state.unsorted.items).filter(x => x.missing).length;
+  const n = allItems().length;
+  if (n) note(missing ? `Genåbnet med ${n} dokumenter fra sidst – ${missing} fil(er) mangler og skal tilføjes igen.` : `Genåbnet med ${n} dokumenter fra sidst.`);
+  return true;
+}
+function note(msg){
+  const el = $("note"); el.textContent = msg; el.style.display = "";
+  clearTimeout(note._t); note._t = setTimeout(()=>{ el.style.display = "none"; }, 12000);
+}
+
+/* ============ læsning af dokumentets indhold ============ */
+function biggestLine(items){
+  let best = null;
+  for (const i of items){
+    const h = Math.hypot(i.transform[2], i.transform[3]) || 0;
+    const t = (i.str||"").trim();
+    if (t.length < 4 || /^page\b|^side\b/i.test(t)) continue;
+    if (!best || h > best.h + 0.1) best = {h, t};
+  }
+  return best ? best.t : "";
+}
+const cmpTitle = (a,b) => String(a).replace(/[^a-z0-9]/gi,"").toLowerCase() === String(b).replace(/[^a-z0-9]/gi,"").toLowerCase();
+function suggestTitle(it, rule){
+  const t = it.text1 || "";
+  let s = "";
+  if (rule === 3){ const m = t.match(/ID\.?\s*No\.?\s*:?\s*([A-Za-z0-9_\-\.]{3,40})/i); if (m) s = m[1]; }
+  if (rule === 7){ const m = t.match(/\b([A-Z]{2}-\d{2,4}-\d{2,4}-\d{2,4}-\d{1,3})\b/); if (m) s = m[1]; }
+  if (rule === 8){ const m = t.match(/(?:welder(?:'s)?\s*(?:no|id|identification)?|stamp\s*no)[^0-9]{0,40}?(\d{3,5})\b/i); if (m) s = "Welder ID " + m[1]; }
+  if (rule === 9){ const m = t.match(/\bWPS\s*(?:no\.?|nr\.?)?\s*:?\s*([A-Za-z0-9][A-Za-z0-9\-\.\/ ]{1,22})/i); if (m) s = "WPS " + m[1].trim(); }
+  if (!s && it.pdfTitle && ![5,7,8,9].includes(rule)){
+    const p = it.pdfTitle.replace(/\.(pdf|xlsx?|docx?|pptx?|ps|dwg|prt|tif+)$/i, "").trim();
+    const junk = /^(microsoft word|untitled|document\s*\d*|print|adobe|scan|employer\s+coversheet|general information)/i;
+    if (p.length >= 6 && /[A-Za-z]{3}/.test(p) && !/^https?:/i.test(p) && !/^\d+$/.test(p) && !junk.test(p)) s = p;
+  }
+  s = tidy(String(s).replace(/\.(pdf|docx?)$/i,"")).slice(0,70).trim();
+  const norm2 = x => String(x).replace(/[^a-z0-9]/gi,"").toLowerCase();
+  if (!s || s.length < 4 || cmpTitle(s, it.title) || norm2(it.title).includes(norm2(s))) return "";
+  return s;
+}
+function crossCheck(it, rule){
+  const hay = (it.textAll || it.text1 || "").replace(/\s+/g,"").toLowerCase();
+  const out = [];
+  if (hay.length < 200 || !/\d/.test(hay)) return out;   // scannet dokument – kan ikke tjekkes
+  const inHay = v => hay.includes(String(v).replace(/[^a-z0-9]/gi,"").toLowerCase());
+  if (rule === 8){ const m = it.fileName.match(/\b(\d{3,5})\b/); if (m && !inHay(m[1])) out.push(`Svejsernummer ${m[1]} fra filnavnet står ikke i dokumentet.`); }
+  if (rule === 5 && it.matId && !inHay(it.matId)) out.push(`${it.matId} står ikke i certifikatets tekst.`);
+  const f = frameNum(it.fileName + " " + it.title);
+  if (f){ const other = f === 1 ? 2 : 1; if (!inHay("frame"+f) && inHay("frame"+other)) out.push(`Filnavnet siger Frame ${f}, men dokumentet nævner Frame ${other}.`); }
+  return out;
+}
+
 /* ================= state ================= */
 let uid = 0;
 let secUid = 100;
@@ -327,9 +453,15 @@ async function addFiles(list, forceSection=null){
     if (state.sections.some(x => base === `${pos(x)}. ${x.name}`.toLowerCase() || (x.rule && base === `${x.rule}. ${SECTIONS[x.rule-1]}`.toLowerCase()))){
       state.skipped.push(file.name); done++; continue; // old merged section file
     }
-    if (allItems().concat(state.unsorted.items).some(it => it.fileName===file.name && it.size===file.size && it.secNo===secNo)){ done++; continue; }
+    const slot = allItems().concat(state.unsorted.items).find(x => x.missing && x.fileName === file.name && x.size === file.size);
+    if (slot){
+      slot.bytes = new Uint8Array(await file.arrayBuffer()); slot.missing = false; slot.key = fileKey(file);
+      await keepBytes(slot); done++; continue;
+    }
+    if (allItems().concat(state.unsorted.items).some(it => !it.missing && it.fileName===file.name && it.size===file.size && it.secNo===secNo)){ done++; continue; }
     busy(true, `Læser ${file.name}`, done/pdfs.length);
     const it = await analyse(file, secOf(secNo));
+    await keepBytes(it);
     secOf(secNo).items.push(it);
     done++;
   }
@@ -342,7 +474,7 @@ async function addFiles(list, forceSection=null){
 async function analyse(file, sec){
   const secNo = sec.no, rule = sec.rule;
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const it = { id:++uid, file, fileName:file.name, size:file.size, bytes, pages:0, secNo, title:"", subs:[], hl:[], errors:[], encrypted:false, open:false, text1:"" };
+  const it = { id:++uid, key:fileKey(file), file, fileName:file.name, size:file.size, bytes, pages:0, secNo, title:"", subs:[], hl:[], errors:[], encrypted:false, open:false, text1:"" };
   const raw = stripPrefix(file.name.replace(/\.pdf$/i,""));
   it.title = tidy(raw);
   let doc;
@@ -378,7 +510,20 @@ async function analyse(file, sec){
     if (rule === 8 && !/^welder id/i.test(it.title)) it.title = "Welder ID " + it.title;
     if (rule === 9) it.subs = [];
     if (rule === 5) await materialSubs(it, doc);
-    if (rule === 2 || rule === 1){ try { const p = await doc.getPage(1); it.text1 = (await p.getTextContent()).items.map(i=>i.str).join("\n"); } catch(e){} }
+    try {
+      const tc = await (await doc.getPage(1)).getTextContent();
+      it.text1 = tc.items.map(i=>i.str).join("\n");
+      it.big = biggestLine(tc.items);
+      const md = await doc.getMetadata().catch(()=>null);
+      it.pdfTitle = (md && md.info && md.info.Title || "").trim();
+      if (doc.numPages <= 40){
+        const parts = [it.text1];
+        for (let p = 2; p <= doc.numPages; p++) parts.push((await (await doc.getPage(p)).getTextContent()).items.map(i=>i.str).join("\n"));
+        it.textAll = parts.join("\n");
+      }
+    } catch(e){}
+    it.suggest = suggestTitle(it, rule);
+    it.checks = crossCheck(it, rule);
   } catch(e){
     it.errors.push(e && e.name === "PasswordException" ? "Filen er password-beskyttet" : "Kan ikke læses som PDF");
   } finally { if (doc) doc.destroy(); }
@@ -471,14 +616,14 @@ function render(){
   const pages = items.reduce((a,i)=>a+i.pages,0);
   const filled = state.sections.filter(s=>s.items.length).length;
   $("stats").innerHTML = `<span><b>${items.length}</b> filer</span><span><b>${pages}</b> sider</span><span><b>${filled}</b>/${state.sections.length} sektioner</span>`;
-  scheduleCover();
+  scheduleCover(); saveSoon();
 }
 function secHTML(s, isUnsorted){
   const pages = s.items.reduce((a,i)=>a+i.pages,0);
   const n = pos(s);
   const head = `<div class="sechead" data-toggle="${s.no}">
       <span class="num">${isUnsorted?"?":n}</span>
-      ${isUnsorted ? `<span class="name">${esc(s.name)}</span>` : `<input class="secname" data-secname="${s.no}" value="${esc(s.name)}" title="Omdøb sektion">`}
+      ${isUnsorted ? `<span class="name">${esc(s.name)}</span>` : `<span class="handle sechandle" data-secdrag="${s.no}" title="Træk sektionen">☰</span><input class="secname" data-secname="${s.no}" value="${esc(s.name)}" title="Omdøb sektion">`}
       <span class="meta">${s.items.length} filer · ${pages} s.</span>
       ${isUnsorted?'<span class="flag warn">kommer ikke med</span>':`
         <button class="icon" data-act="secup" data-sec="${s.no}" title="Ryk sektion op">↑</button>
@@ -493,7 +638,7 @@ function secHTML(s, isUnsorted){
         <input class="p" type="number" min="1" max="${it.pages}" data-sub="${it.id}:${k}" data-f="page" value="${sb.page}" title="Side i filen">
         <button class="icon" data-act="subup" data-id="${it.id}" data-k="${k}" title="Ryk op">↑</button>
         <button class="icon" data-act="subdel" data-id="${it.id}" data-k="${k}" title="Slet">✕</button></div>`).join("");
-    return `<div class="item" draggable="true" data-item="${it.id}">
+    return `<div class="item" data-item="${it.id}">
       <div class="irow">
         <span class="handle" title="Træk">☰</span>
         <input class="ititle" data-title="${it.id}" value="${esc(it.title)}">
@@ -504,7 +649,11 @@ function secHTML(s, isUnsorted){
         <button class="icon" data-act="addsub" data-id="${it.id}" title="Tilføj underbogmærke">＋</button>
         <button class="icon" data-act="del" data-id="${it.id}" title="Fjern fil">🗑</button>
       </div>
-      <div class="fname">${esc(it.fileName)}</div>
+      <div class="fname">${esc(it.fileName)}${it.missing?' · <span class="flag err">fil mangler – tilføj igen</span>':""}</div>
+      ${it.suggest && !it.suggestDone ? `<div class="sugg"><span class="lbl">Forslag fra dokumentet</span><b>${esc(it.suggest)}</b>
+          <button class="btn sm teal" data-act="useSugg" data-id="${it.id}">Brug</button>
+          <button class="btn sm ghost" data-act="dropSugg" data-id="${it.id}">Behold mit</button></div>` : ""}
+      ${(it.checks||[]).map(c=>`<div class="chk-warn">⚠ ${esc(c)}</div>`).join("")}
       ${it.subs.length ? `<div class="subs">${subs}</div>` : ""}
     </div>`;
   }).join("") : `<div class="empty-note">Ingen filer – vises som "Not included" på forsiden.</div>`;
@@ -550,6 +699,8 @@ list.addEventListener("click", e => {
   if (act === "down" && idx<sec.items.length-1) [sec.items[idx+1], sec.items[idx]] = [sec.items[idx], sec.items[idx+1]];
   if (act === "del") sec.items.splice(idx,1);
   if (act === "addsub") item.subs.push({title:"", page:1, depth:1});
+  if (act === "useSugg"){ item.title = item.suggest; item.suggestDone = true; }
+  if (act === "dropSugg") item.suggestDone = true;
   if (act === "subdel") item.subs.splice(+b.dataset.k,1);
   if (act === "subup"){ const k=+b.dataset.k; if (k>0) [item.subs[k-1], item.subs[k]] = [item.subs[k], item.subs[k-1]]; }
   render();
@@ -557,7 +708,7 @@ list.addEventListener("click", e => {
 list.addEventListener("input", e => {
   const t = e.target;
   if (t.dataset.secname){ secOf(+t.dataset.secname).name = t.value; saveLayout(); scheduleCover(); return; }
-  if (t.dataset.title){ findItem(+t.dataset.title).item.title = t.value; scheduleCover(); }
+  if (t.dataset.title){ const i2 = findItem(+t.dataset.title).item; i2.title = t.value; i2.suggestDone = true; saveSoon(); scheduleCover(); }
   if (t.dataset.sub){ const [id,k] = t.dataset.sub.split(":"); const sb = findItem(+id).item.subs[+k]; if (t.dataset.f==="page") sb.page = parseInt(t.value)||1; else { sb.title = t.value; sb.needsCheck = false; } }
 });
 list.addEventListener("keydown", e => { if (e.target.dataset && e.target.dataset.secname && e.key === "Enter") e.target.blur(); if (e.target.id === "newSecName" && e.key === "Enter") document.querySelector('[data-act="secadd"]').click(); });
@@ -571,29 +722,41 @@ list.addEventListener("change", e => {
     to.items.push(f.item); to.open = true; render();
   }
 });
-// drag & drop reordering
-let dragId = null;
-list.addEventListener("dragstart", e => { const el = e.target.closest("[data-item]"); if (!el) return; if (e.target.closest("input")) { e.preventDefault(); return; } dragId = +el.dataset.item; el.classList.add("dragging"); e.dataTransfer.effectAllowed="move"; e.dataTransfer.setData("text/x-pqa", String(dragId)); });
-list.addEventListener("dragend", () => { dragId=null; document.querySelectorAll(".dragging,.dropbefore,.secbody.over").forEach(x=>x.classList.remove("dragging","dropbefore","over")); });
-list.addEventListener("dragover", e => {
-  if (dragId===null) return;
-  const body = e.target.closest("[data-body]"); if (!body) return;
+/* ---- flyt med musen (pointer-baseret, virker også på touch) ---- */
+let ptr = null;
+list.addEventListener("pointerdown", e => {
+  const h = e.target.closest(".handle"); if (!h || e.button) return;
   e.preventDefault();
-  document.querySelectorAll(".dropbefore,.secbody.over").forEach(x=>x.classList.remove("dropbefore","over"));
-  const over = e.target.closest("[data-item]");
-  if (over && +over.dataset.item!==dragId) over.classList.add("dropbefore"); else body.classList.add("over");
+  ptr = h.dataset.secdrag ? {type:"sec", id:+h.dataset.secdrag} : {type:"item", id:+h.closest("[data-item]").dataset.item};
+  document.body.classList.add("dragging-now");
 });
-list.addEventListener("drop", e => {
-  if (dragId===null) return;
-  const body = e.target.closest("[data-body]"); if (!body) return;
-  e.preventDefault(); e.stopPropagation();
-  const f = findItem(dragId); f.sec.items.splice(f.idx,1);
-  const to = secOf(+body.dataset.body); f.item.secNo = to.no;
-  const over = e.target.closest("[data-item]");
-  let at = to.items.length;
-  if (over){ const i = to.items.findIndex(x=>x.id===+over.dataset.item); if (i>=0) at = i; }
-  to.items.splice(at,0,f.item); dragId=null; render();
-});
+document.addEventListener("pointermove", e => {
+  if (!ptr) return;
+  e.preventDefault();
+  const el = document.elementFromPoint(e.clientX, e.clientY); if (!el || !el.closest) return;
+  if (ptr.type === "sec"){
+    const over = el.closest(".sec[data-sec]");
+    if (!over || +over.dataset.sec === ptr.id || +over.dataset.sec === 0) return;
+    const from = state.sections.findIndex(x => x.no === ptr.id), to = state.sections.findIndex(x => x.no === +over.dataset.sec);
+    if (from < 0 || to < 0) return;
+    const [m] = state.sections.splice(from, 1); state.sections.splice(to, 0, m); saveLayout(); render();
+    return;
+  }
+  const f = findItem(ptr.id); if (!f) return;
+  const overItem = el.closest("[data-item]"), overBody = el.closest("[data-body]");
+  if (overItem && +overItem.dataset.item !== ptr.id){
+    const t = findItem(+overItem.dataset.item); if (!t) return;
+    const r = overItem.getBoundingClientRect(), after = e.clientY > r.top + r.height / 2;
+    f.sec.items.splice(f.idx, 1);
+    let idx = t.sec.items.findIndex(x => x.id === t.item.id);
+    t.sec.items.splice(after ? idx + 1 : idx, 0, f.item); f.item.secNo = t.sec.no; render();
+  } else if (overBody && +overBody.dataset.body !== f.sec.no){
+    const to = secOf(+overBody.dataset.body);
+    f.sec.items.splice(f.idx, 1); to.items.push(f.item); f.item.secNo = to.no; to.open = true; render();
+  }
+}, {passive:false});
+document.addEventListener("pointerup", () => { if (ptr){ ptr = null; document.body.classList.remove("dragging-now"); render(); } });
+document.addEventListener("pointercancel", () => { ptr = null; document.body.classList.remove("dragging-now"); });
 
 let pendingSection = null;
 $("btnFolder").onclick = () => { $("inFolder").value=""; $("inFolder").click(); };
@@ -602,10 +765,10 @@ $("inFolder").onchange = e => addFiles([...e.target.files].map(f=>({file:f, path
 $("inFiles").onchange = e => addFiles([...e.target.files].map(f=>({file:f, path:f.name})));
 $("inSection").onchange = e => addFiles([...e.target.files].map(f=>({file:f, path:f.name})), pendingSection);
 const drop = $("drop");
-["dragenter","dragover"].forEach(ev => document.addEventListener(ev, e => { if (dragId!==null) return; if ([...(e.dataTransfer?.types||[])].includes("Files")){ e.preventDefault(); drop.classList.add("over"); } }));
+["dragenter","dragover"].forEach(ev => document.addEventListener(ev, e => { if (ptr) return; if ([...(e.dataTransfer?.types||[])].includes("Files")){ e.preventDefault(); drop.classList.add("over"); } }));
 document.addEventListener("dragleave", e => { if (!e.relatedTarget) drop.classList.remove("over"); });
 document.addEventListener("drop", async e => {
-  if (dragId!==null) return;
+  if (ptr) return;
   if (![...(e.dataTransfer?.types||[])].includes("Files")) return;
   e.preventDefault(); drop.classList.remove("over");
   const secBody = e.target.closest && e.target.closest("[data-body]");
@@ -619,7 +782,12 @@ document.addEventListener("drop", async e => {
 $("btnOpenAll").onclick = () => { [...state.sections, state.unsorted].forEach(s=>s.open=true); render(); };
 $("btnCloseAll").onclick = () => { [...state.sections, state.unsorted].forEach(s=>s.open=false); render(); };
 $("btnSuggest").onclick = () => { for (const s of state.sections) s.items.sort((a,b)=>cmpKey(sortKey(s.rule,a), sortKey(s.rule,b))); render(); };
-$("btnReset").onclick = () => { if (!allItems().length && !state.unsorted.items.length) return; state.sections.forEach(s=>s.items=[]); state.unsorted.items=[]; state.skipped=[]; render(); };
+$("btnReset").onclick = async () => {
+  if (!confirm("Ryd alle filer og det der er gemt i browseren?")) return;
+  state.sections.forEach(s=>s.items=[]); state.unsorted.items=[]; state.skipped=[];
+  try { await idbClear("files"); await idbClear("state"); } catch(e){}
+  render();
+};
 
 function syncOpts(){
   $("opt_dividers").checked = opts.dividers; $("opt_empty").checked = opts.dividersEmpty;
@@ -627,7 +795,7 @@ function syncOpts(){
 }
 $("opt_dividers").addEventListener("change", e => { opts.dividers = e.target.checked; saveOpts(); });
 $("opt_empty").addEventListener("change", e => { opts.dividersEmpty = e.target.checked; saveOpts(); });
-function saveOpts(){ try { localStorage.setItem("pqa_opts", JSON.stringify(opts)); } catch(e){} syncOpts(); scheduleCover(); }
+function saveOpts(){ try { localStorage.setItem("pqa_opts", JSON.stringify(opts)); } catch(e){} syncOpts(); scheduleCover(); saveSoon(); }
 function fillMeta(){
   for (const k of META_KEYS){ const el = $("m_"+k); if (document.activeElement !== el) el.value = meta[k]||""; }
   $("autoTag").textContent = !metaTouched.name && metaAuto.name && meta.name===metaAuto.name ? "foreslået automatisk" : "";
@@ -636,6 +804,7 @@ function fillMeta(){
 for (const k of META_KEYS) $("m_"+k).addEventListener("input", e => {
   meta[k] = e.target.value; metaTouched[k] = true;
   try { localStorage.setItem("pqa_meta", JSON.stringify({title:meta.title, client:meta.client, project:meta.project, package:meta.package})); } catch(err){}
+  saveSoon();
   fillMeta(); scheduleCover();
 });
 const pqaCore = () => meta.name.replace(/^PQA\s*-?\s*/i,"").trim();
@@ -928,6 +1097,7 @@ async function buildPdf({coverOnly=false}={}){
   const items = plan.secs.flatMap(s=>s.items);
   const divLinks = [];
   let n = 0;
+  if (items.some(x => x.missing || !x.bytes)) throw new Error("Nogle filer er ikke indlæst i browseren – tilføj dem igen.");
   for (const sec of plan.secs){
    if (sec.divider){ const dp = out.addPage(A4); divLinks.push({page:dp, links: drawDivider(dp, F, logo, sec)}); }
    for (const it of sec.items){
@@ -950,11 +1120,11 @@ async function buildPdf({coverOnly=false}={}){
   idxLinks.forEach((ls,k) => ls.forEach(l => addLink(out, idxPages[k], l.rect, pages[l.page].ref)));
   divLinks.forEach(d => d.links.forEach(l => addLink(out, d.page, l.rect, pages[l.page].ref)));
   const tree = [
-    {title:`PQA - ${pqaCore()}`, page:0},
+    {title:`PQA - ${pqaCore()}`, page:0, open:true, children:[
     {title:"Document Index", page:1, open:false, children: plan.secs.filter(s=>s.start).map(s => ({
       title:s.title, page:s.start-1, open:false,
       children: s.items.map(it => ({title:(it.title||it.fileName).trim(), page:it._start-1, open:false, children: subTree(it, it._start-1)}))
-    }))}
+    }))}]}
   ];
   addOutline(out, tree);
   out.setTitle(`PQA - ${pqaCore()}`); out.setAuthor("Nicon Industries A/S"); out.setCreator("PQA Builder"); out.setProducer("PQA Builder");
@@ -1004,6 +1174,9 @@ function validate(){
       for (const e of it.errors) issues.push({lvl:"err", msg:e, where:w});
       if (it.encrypted) issues.push({lvl:"warn", msg:"Filen er krypteret – indholdet kan blive forkert i den samlede fil.", where:w});
       if (!it.title.trim()) issues.push({lvl:"err", msg:"Bogmærket er tomt.", where:`${where} › ${it.fileName}`});
+      if (it.missing) issues.push({lvl:"err", msg:"Filen er ikke indlæst i denne browser-session – tilføj den igen.", where:w});
+      if (it.suggest && !it.suggestDone) issues.push({lvl:"info", msg:`Dokumentet foreslår navnet "${it.suggest}" – godkend eller behold dit eget.`, where:w, fix:{type:"sugg", id:it.id}});
+      for (const c of (it.checks||[])) issues.push({lvl:"warn", msg:c, where:w});
       const cos = cosmeticIssues(it.title);
       if (cos.length) issues.push({lvl:"warn", msg:`Stavning/format: ${cos.join(", ")}`, where:w, fix:{type:"title", id:it.id}});
       if (/\b(temp|temporary|draft|midlertidig|udkast)\b/i.test(it.title + " " + it.fileName)) issues.push({lvl:"warn", msg:"Midlertidigt dokument – husk at udskifte før aflevering.", where:w});
@@ -1038,6 +1211,7 @@ function applyFix(fx){
   if (!fx) return;
   if (fx.type === "title"){ const it = findItem(fx.id).item; it.title = tidy(it.title); }
   if (fx.type === "sub"){ const sb = findItem(fx.id).item.subs[fx.k]; if (sb) sb.title = tidy(sb.title); }
+  if (fx.type === "sugg"){ const i2 = findItem(fx.id).item; if (i2.suggest){ i2.title = i2.suggest; i2.suggestDone = true; } }
   if (fx.type === "sec"){ const sc = secOf(fx.no); sc.name = tidy(sc.name); saveLayout(); }
   if (fx.type === "meta"){ for (const k of ["title","project","package","scope"]) meta[k] = tidy(meta[k]); fillMeta(); }
 }
@@ -1058,7 +1232,7 @@ function openCheck(){
   $("modal").classList.add("show");
 }
 $("mList").addEventListener("click", e => { const b = e.target.closest("[data-fix]"); if (!b) return; applyFix(currentIssues[+b.dataset.fix].fix); render(); openCheck(); });
-$("mFixAll").onclick = () => { currentIssues.forEach(x=>applyFix(x.fix)); render(); openCheck(); };
+$("mFixAll").onclick = () => { currentIssues.forEach(x => { if (x.fix && x.fix.type !== "sugg") applyFix(x.fix); }); render(); openCheck(); };
 $("mBack").onclick = () => $("modal").classList.remove("show");
 $("btnDownload").onclick = openCheck;
 $("mGo").onclick = async () => {
@@ -1076,7 +1250,10 @@ $("mGo").onclick = async () => {
   } finally { busy(false); }
 };
 
-syncOpts(); fillMeta(); render();
+(async () => {
+  try { await restoreSession(); } catch(e){ console.warn(e); }
+  syncOpts(); fillMeta(); render();
+})();
 </script>
 </body>
 </html>
