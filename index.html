@@ -72,6 +72,7 @@ body.dragging-now .handle{cursor:grabbing}
 .pg{font-family:"Space Mono";font-size:11px;color:var(--muted);white-space:nowrap}
 .fname{font-family:"Space Mono";font-size:11px;color:var(--dim);margin:2px 0 0 30px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .flag{font-family:"Space Mono";font-size:10px;padding:1px 6px;border-radius:99px;border:1px solid}
+.flag.rot{color:var(--teal);border-color:var(--teal2)}
 .flag.warn{color:var(--amber);border-color:#6b5520} .flag.err{color:var(--red);border-color:#6b2a22}
 .sugg{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 0 30px;padding:5px 8px;border:1px solid #4a5a2a;background:#1b2114;border-radius:7px;font-size:12.5px}
 .sugg .lbl{font-family:"Space Mono";font-size:10px;color:var(--lime);text-transform:uppercase;letter-spacing:.06em}
@@ -114,6 +115,17 @@ body.dragging-now .handle{cursor:grabbing}
 .issue .where{font-family:"Space Mono";font-size:11px;color:var(--muted)}
 .issue .fix{margin-left:auto;flex:none}
 .mfoot{padding:14px 18px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.pvbox{max-width:1100px}
+.pvhead{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.pvtools{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.pvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:14px 18px}
+.pvcell{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px;text-align:center}
+.pvcell canvas{width:100%;height:auto;background:#fff;border-radius:3px;display:block}
+.pvcell .n{font-family:"Space Mono";font-size:10px;color:var(--muted);margin-top:4px}
+.pvcell .rb{display:flex;gap:4px;justify-content:center;margin-top:3px}
+.pvcell.turned{border-color:var(--teal)}
+.pvhint{font-size:12px;color:var(--muted);margin-right:auto}
+.pvmore{grid-column:1/-1;text-align:center}
 .busy{position:fixed;inset:0;background:rgba(10,12,9,.75);z-index:60;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
 .busy.show{display:flex}
 .bar{width:320px;height:6px;background:var(--line);border-radius:9px;overflow:hidden}
@@ -183,7 +195,7 @@ body.dragging-now .handle{cursor:grabbing}
         <label class="chk"><input type="checkbox" id="opt_dividers"> <span>Skilleside for hver sektion</span></label>
         <label class="chk sub" id="optEmptyWrap"><input type="checkbox" id="opt_empty"> <span>Medtag tomme sektioner som <i>"Not applicable"</i></span></label>
         <label class="chk"><input type="checkbox" id="opt_a4"> <span>Alle sider som stående A4</span></label>
-        <label class="chk sub" id="optTurnWrap"><input type="checkbox" id="opt_turn"> <span>Drej liggende sider den anden vej (tegningshoved nederst til venstre)</span></label>
+        <label class="chk sub" id="optTurnWrap"><input type="checkbox" id="opt_turn"> <span>Drej liggende sider 90° til stående A4 (ellers bliver de liggende A4)</span></label>
       </div>
       <div class="checks">
         <label class="chk"><input type="checkbox" id="opt_cover"> <span>RWE cover sheet forrest (PDF)</span></label>
@@ -209,6 +221,20 @@ body.dragging-now .handle{cursor:grabbing}
     <button class="btn teal" id="mFixAll">Ret stavning automatisk</button>
     <button class="btn primary" id="mGo">Download</button>
   </div>
+</div></div>
+
+<div class="modal" id="pv"><div class="mbox pvbox">
+  <div class="mhead pvhead">
+    <div><h2 id="pvTitle">Preview</h2><p id="pvSub"></p></div>
+    <div class="pvtools">
+      <button class="btn sm" id="pvLeft" title="Drej hele filen mod uret">⟲ Hele filen</button>
+      <button class="btn sm" id="pvRight" title="Drej hele filen med uret">⟳ Hele filen</button>
+      <button class="btn sm ghost" id="pvReset">Nulstil</button>
+      <button class="btn sm ghost" id="pvClose">Luk</button>
+    </div>
+  </div>
+  <div class="mlist pvgrid" id="pvGrid"></div>
+  <div class="mfoot"><span class="pvhint">Klik ⟲ / ⟳ under en side for at dreje netop den side. Rotationen bruges i den samlede PDF.</span><button class="btn primary" id="pvDone">Færdig</button></div>
 </div></div>
 
 <div class="busy" id="busy"><div class="bar"><i id="barFill"></i></div><div class="msg" id="busyMsg">Arbejder…</div></div>
@@ -316,7 +342,7 @@ let coverSheet = null;
 let saveTimer = null;
 function saveSoon(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveState, 600); }
 function serItems(list){
-  return list.map(it => ({key:it.key, fileName:it.fileName, size:it.size, pages:it.pages, title:it.title, subs:it.subs,
+  return list.map(it => ({rot:it.rot||0, pageRot:it.pageRot||{}, key:it.key, fileName:it.fileName, size:it.size, pages:it.pages, title:it.title, subs:it.subs,
     hl:it.hl, matId:it.matId, suggest:it.suggest, suggestDone:!!it.suggestDone, checks:it.checks, errors:it.errors,
     encrypted:!!it.encrypted, text1:(it.text1||"").slice(0,4000), overview:it.overview}));
 }
@@ -330,7 +356,7 @@ async function saveState(){
 function deItem(d, bytes){
   return {id:++uid, key:d.key, file:null, fileName:d.fileName, size:d.size, bytes: bytes ? new Uint8Array(bytes) : null,
     pages:d.pages||0, title:d.title||"", subs:d.subs||[], hl:d.hl||[], matId:d.matId, suggest:d.suggest||"",
-    suggestDone:!!d.suggestDone, checks:d.checks||[], errors:d.errors||[], encrypted:!!d.encrypted,
+    rot:d.rot||0, pageRot:d.pageRot||{}, suggestDone:!!d.suggestDone, checks:d.checks||[], errors:d.errors||[], encrypted:!!d.encrypted,
     text1:d.text1||"", overview:d.overview, missing: !bytes};
 }
 async function restoreSession(){
@@ -622,6 +648,8 @@ function autoMeta(){
 }
 
 /* ================= rendering ================= */
+const pageRot = (it, i) => ((((it.rot || 0) + ((it.pageRot || {})[i] || 0)) % 360) + 360) % 360;
+const rotCount = it => (it.rot ? it.pages : 0) + Object.keys(it.pageRot || {}).length;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function render(){
   const list = $("list");
@@ -661,7 +689,8 @@ function secHTML(s, isUnsorted){
       <div class="irow">
         <span class="handle" title="Træk">☰</span>
         <input class="ititle" data-title="${it.id}" value="${esc(it.title)}">
-        ${warn}<span class="pg">${it.pages} s.</span>
+        ${warn}${it.rot || Object.keys(it.pageRot||{}).length ? `<span class="flag rot">⟳ ${it.rot?it.rot+"°":"sider"}</span>` : ""}<span class="pg">${it.pages} s.</span>
+        <button class="icon" data-act="prev" data-id="${it.id}" title="Vis og drej sider">🔍</button>
         <button class="icon" data-act="up" data-id="${it.id}" title="Op">↑</button>
         <button class="icon" data-act="down" data-id="${it.id}" title="Ned">↓</button>
         <select class="movesel" data-move="${it.id}">${opts(s.no)}</select>
@@ -684,6 +713,8 @@ function secHTML(s, isUnsorted){
 /* ================= events ================= */
 const list = $("list");
 list.addEventListener("click", e => {
+  const fn = e.target.closest(".fname");
+  if (fn){ const it = findItem(+fn.closest("[data-item]").dataset.item); if (it) openPreview(it.item); return; }
   const tg = e.target.closest("[data-toggle]");
   if (tg && !e.target.closest("button,input,select")){ const s = secOf(+tg.dataset.toggle); s.open = !s.open; render(); return; }
   const b = e.target.closest("button[data-act]"); if (!b) return;
@@ -717,6 +748,7 @@ list.addEventListener("click", e => {
   if (act === "up" && idx>0) [sec.items[idx-1], sec.items[idx]] = [sec.items[idx], sec.items[idx-1]];
   if (act === "down" && idx<sec.items.length-1) [sec.items[idx+1], sec.items[idx]] = [sec.items[idx], sec.items[idx+1]];
   if (act === "del") sec.items.splice(idx,1);
+  if (act === "prev"){ openPreview(item); return; }
   if (act === "addsub") item.subs.push({title:"", page:1, depth:1});
   if (act === "useSugg"){ item.title = item.suggest; item.suggestDone = true; }
   if (act === "dropSugg") item.suggestDone = true;
@@ -1059,14 +1091,19 @@ function drawDivider(page, F, logo, s, offset){
 function toA4(page){
   const rot0 = ((page.getRotation().angle % 360) + 360) % 360;
   let mb = page.getMediaBox();
-  let vw = (rot0 % 180) ? mb.height : mb.width, vh = (rot0 % 180) ? mb.width : mb.height, rot = rot0;
-  if (vw > vh + 0.5){ rot = (rot0 + (opts.turn ? 90 : 270)) % 360; page.setRotation(degrees(rot)); const t = vw; vw = vh; vh = t; }
-  const sc = Math.min(A4[0] / vw, A4[1] / vh);
+  let vw = (rot0 % 180) ? mb.height : mb.width, vh = (rot0 % 180) ? mb.width : mb.height;
+  let landscape = vw > vh + 0.5, rot = rot0;
+  if (opts.turn && landscape){                       // valgfrit: drej liggende sider så de fylder A4 stående
+    rot = (rot0 + 270) % 360; page.setRotation(degrees(rot));
+    const t = vw; vw = vh; vh = t; landscape = false;
+  }
+  const TW = landscape ? A4[1] : A4[0], TH = landscape ? A4[0] : A4[1];
+  const sc = Math.min(TW / vw, TH / vh);
   if (Math.abs(sc - 1) > 0.002){ try { page.scale(sc, sc); } catch(e){} mb = page.getMediaBox(); }
-  const TW = (rot % 180) ? A4[1] : A4[0], TH = (rot % 180) ? A4[0] : A4[1];
-  const x = mb.x - (TW - mb.width) / 2, y = mb.y - (TH - mb.height) / 2;
-  page.setMediaBox(x, y, TW, TH);
-  try { page.setCropBox(x, y, TW, TH); } catch(e){}
+  const uW = (rot % 180) ? TH : TW, uH = (rot % 180) ? TW : TH;   // i sidens eget (uroterede) rum
+  const x = mb.x - (uW - mb.width) / 2, y = mb.y - (uH - mb.height) / 2;
+  page.setMediaBox(x, y, uW, uH);
+  try { page.setCropBox(x, y, uW, uH); } catch(e){}
 }
 function stampPageNo(page, F, label){
   const box = page.getCropBox ? page.getCropBox() : page.getMediaBox();
@@ -1184,6 +1221,8 @@ async function buildPdf({coverOnly=false}={}){
     copied.forEach((p,i) => {
       out.addPage(p);
       for (const r of rects.filter(r=>r.page===i)) p.drawRectangle({x:r.x, y:r.y, width:r.w, height:r.h, color:rgb(1,.92,.1), opacity:.45, blendMode:BlendMode.Multiply});
+      const ur = pageRot(it, i);
+      if (ur) p.setRotation(degrees((((p.getRotation().angle + ur) % 360) + 360) % 360));
       if (opts.a4) toA4(p);
     });
     n++;
@@ -1207,6 +1246,69 @@ async function buildPdf({coverOnly=false}={}){
   out.setTitle(docName()); out.setAuthor("Nicon Industries A/S"); out.setCreator("PQA Builder"); out.setProducer("PQA Builder");
   return out;
 }
+
+/* ================= preview af en fil ================= */
+let pvItem = null, pvDoc = null, pvShown = 0;
+async function openPreview(it){
+  if (!it.bytes){ note("Filen er ikke indlæst i browseren – tilføj den igen."); return; }
+  pvItem = it; pvShown = 0;
+  $("pvTitle").textContent = it.title || it.fileName;
+  $("pvSub").textContent = `${it.fileName} · ${it.pages} side(r)`;
+  $("pvGrid").innerHTML = "";
+  $("pv").classList.add("show");
+  try {
+    if (pvDoc){ pvDoc.destroy(); pvDoc = null; }
+    pvDoc = await pdfjsLib.getDocument({data: it.bytes.slice(), isEvalSupported:false}).promise;
+    await pvRender(24);
+  } catch(e){ note("Kunne ikke vise filen: " + (e && e.message || e)); }
+}
+async function pvRender(batch){
+  const grid = $("pvGrid"), it = pvItem;
+  const more = grid.querySelector(".pvmore"); if (more) more.remove();
+  const end = Math.min(pvItem.pages, pvShown + batch);
+  for (let i = pvShown; i < end; i++){
+    const cell = document.createElement("div");
+    cell.className = "pvcell" + (pageRot(it, i) ? " turned" : "");
+    cell.dataset.page = i;
+    const cv = document.createElement("canvas");
+    cell.appendChild(cv);
+    const n = document.createElement("div"); n.className = "n"; n.textContent = `side ${i+1}${pageRot(it,i)?` · ${pageRot(it,i)}°`:""}`;
+    const rb = document.createElement("div"); rb.className = "rb";
+    rb.innerHTML = `<button class="btn sm ghost" data-rot="-90" data-p="${i}">⟲</button><button class="btn sm ghost" data-rot="90" data-p="${i}">⟳</button>`;
+    cell.appendChild(n); cell.appendChild(rb);
+    grid.appendChild(cell);
+    try {
+      const page = await pvDoc.getPage(i + 1);
+      const vp0 = page.getViewport({scale:1, rotation: (page.rotate + pageRot(it, i)) % 360});
+      const scale = 150 / vp0.width;
+      const vp = page.getViewport({scale, rotation: (page.rotate + pageRot(it, i)) % 360});
+      cv.width = vp.width; cv.height = vp.height;
+      await page.render({canvasContext: cv.getContext("2d"), viewport: vp}).promise;
+    } catch(e){}
+  }
+  pvShown = end;
+  if (pvShown < pvItem.pages){
+    const b = document.createElement("div"); b.className = "pvmore";
+    b.innerHTML = `<button class="btn sm" id="pvMore">Vis flere sider (${pvItem.pages - pvShown} tilbage)</button>`;
+    grid.appendChild(b);
+    $("pvMore").onclick = () => pvRender(24);
+  }
+}
+async function pvRedraw(){ const keep = pvShown; pvShown = 0; $("pvGrid").innerHTML = ""; await pvRender(keep || 24); }
+$("pvGrid").addEventListener("click", async e => {
+  const b = e.target.closest("[data-rot]"); if (!b || !pvItem) return;
+  const i = +b.dataset.p, delta = +b.dataset.rot;
+  pvItem.pageRot = pvItem.pageRot || {};
+  const cur = (pvItem.pageRot[i] || 0), val = (((cur + delta) % 360) + 360) % 360;
+  if (val) pvItem.pageRot[i] = val; else delete pvItem.pageRot[i];
+  saveSoon(); await pvRedraw(); render();
+});
+$("pvLeft").onclick = async () => { if (!pvItem) return; pvItem.rot = ((((pvItem.rot||0) - 90) % 360) + 360) % 360; saveSoon(); await pvRedraw(); render(); };
+$("pvRight").onclick = async () => { if (!pvItem) return; pvItem.rot = ((((pvItem.rot||0) + 90) % 360) + 360) % 360; saveSoon(); await pvRedraw(); render(); };
+$("pvReset").onclick = async () => { if (!pvItem) return; pvItem.rot = 0; pvItem.pageRot = {}; saveSoon(); await pvRedraw(); render(); };
+function pvCloseFn(){ $("pv").classList.remove("show"); if (pvDoc){ pvDoc.destroy(); pvDoc = null; } pvItem = null; scheduleCover(); }
+$("pvClose").onclick = pvCloseFn; $("pvDone").onclick = pvCloseFn;
+$("pv").addEventListener("click", e => { if (e.target.id === "pv") pvCloseFn(); });
 
 /* ================= cover preview ================= */
 let coverTimer = null, coverBusy = false, coverAgain = false;
@@ -1283,7 +1385,8 @@ function validate(){
   if (opts.cover && !coverSheet) issues.push({lvl:"warn", msg:"\"RWE cover sheet forrest\" er valgt, men der er ikke valgt en PDF."});
   if (opts.cover && coverSheet && !coverSheet.box && opts.coverPages) issues.push({lvl:"warn", msg:"Feltet \"Pages (Inc. Cover)\" blev ikke fundet i cover sheet'et – sideantallet skal skrives manuelt."});
   if (plan0().offset) issues.push({lvl:"info", msg:`Sidetal starter på 2 – den samlede fil regnes som ${buildPlan().total + 1} sider inkl. den forside du selv sætter på.`});
-  if (opts.a4) issues.push({lvl:"info", msg:"Alle sider gøres til stående A4 – liggende sider drejes, så tegningshovedet står " + (opts.turn ? "nederst til venstre." : "øverst til højre.")});
+  { const n = allItems().reduce((a,i)=>a+rotCount(i),0); if (n) issues.push({lvl:"info", msg:`${n} side(r) er drejet manuelt i preview.`}); }
+  if (opts.a4) issues.push({lvl:"info", msg:"Alle sider gøres til A4 – " + (opts.turn ? "liggende sider drejes 90° til stående A4." : "hver side beholder sin egen retning (stående eller liggende A4).")});
   if (opts.dividers){ const nd = buildPlan().secs.filter(x=>x.divider).length; issues.push({lvl:"info", msg:`${nd} skillesider tilføjes${opts.dividersEmpty?" (tomme sektioner som \"Not applicable\")":""}.`}); }
   const mb = items.reduce((a,i)=>a+i.size,0)/1048576;
   if (mb > 150) issues.push({lvl:"info", msg:`Samlet ca. ${Math.round(mb)} MB – det kan tage lidt tid og kræve meget hukommelse.`});
