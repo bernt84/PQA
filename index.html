@@ -11,6 +11,49 @@
 <script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
+.revbox{margin-top:10px;border:1px solid var(--line, #d7dbe3);border-radius:8px;padding:8px 10px}
+.revhead{font-weight:600;font-size:12px;margin-bottom:6px}
+#bm .mbox{max-width:1280px;height:88vh}
+.bmwrap{display:grid;grid-template-columns:minmax(0,1fr) 420px;min-height:0;flex:1;overflow:hidden}
+@media(max-width:900px){.bmwrap{grid-template-columns:1fr;grid-template-rows:1fr 300px}.bmpv{border-left:0;border-top:1px solid var(--line,#d7dbe3)}}
+.bmwrap .mlist{overflow:auto;max-height:none}
+.bmpv{border-left:1px solid var(--line,#d7dbe3);padding:14px;overflow:auto;display:flex;flex-direction:column;align-items:center;gap:8px}
+.bmpv canvas{max-width:100%;box-shadow:0 1px 6px rgba(0,0,0,.25);background:#fff}
+.bmpvcap{font-size:11.5px;opacity:.75;text-align:center;line-height:1.35}
+.bmpvempty{opacity:.5;font-size:12px;margin-top:40px;text-align:center}
+.bmrow .lv{flex:0 0 auto;display:flex;gap:2px}
+.bmrow .lv button{padding:1px 6px;font-size:11px;line-height:1.3;border-radius:5px;border:1px solid var(--line,#d7dbe3);background:transparent;color:inherit;opacity:.55;cursor:pointer}
+.bmrow .lv button:hover{opacity:1}
+.bmrow .lv button:disabled{opacity:.15;cursor:default}
+.bmrow .lv.none{visibility:hidden}
+.bmrow .bpb{flex:0 0 86px;text-align:right;font-size:11.5px;background:transparent;border:0;color:inherit;opacity:.7;cursor:pointer;padding:3px 4px;border-radius:5px;font-variant-numeric:tabular-nums}
+.bmrow .bpb:hover{opacity:1;background:rgba(127,127,127,.12)}
+.bmrow .bpn{flex:0 0 54px;width:54px;box-sizing:border-box;text-align:right;background:#141811;border:1px solid var(--line);border-radius:5px;color:var(--ink);padding:3px 5px;font-family:"Space Mono";font-size:11.5px}
+.bmrow .bpn:focus{outline:none;border-color:var(--teal)}
+.bmrow .bpw{flex:0 0 86px;display:flex;justify-content:flex-end;align-items:center;gap:3px;font-size:11px;opacity:.85}
+.bmrow.sel{background:rgba(224,22,27,.08)}
+.bmrow{display:flex;align-items:center;gap:10px;padding:3px 18px;border-bottom:1px solid var(--line,#eceef2)}
+.bmrow:hover{background:rgba(127,127,127,.06)}
+.bmrow .bt{flex:1;min-width:0;font-size:13px;padding:4px 7px;border:1px solid transparent;background:transparent;border-radius:6px;color:var(--ink);font-family:inherit}
+.bmrow .bt:hover{border-color:var(--line,#d7dbe3)}
+.bmrow .bt:focus{border-color:var(--line,#d7dbe3);background:rgba(255,255,255,.06);outline:none}
+.bmrow .bp{flex:0 0 86px;text-align:right;font-size:11.5px;opacity:.6;font-variant-numeric:tabular-nums}
+.bmrow.l1 .bt{font-weight:700}
+.bmrow.l2 .bt{font-weight:600;opacity:.9}
+.bmrow.l3 .bt{font-weight:600}
+.bmrow.hide{display:none}
+.swap{font-size:11px;opacity:.65;margin-left:6px;color:inherit}
+.swap:hover{opacity:1}
+.revrow{border-top:1px solid var(--line,#d7dbe3);padding:7px 0 8px}
+.revtop{display:flex;align-items:center;gap:8px}
+.revtop .rnum{width:74px;text-align:center}
+.revtop button{margin-left:auto;padding:2px 8px;line-height:1.2}
+.revgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;margin-top:6px}
+.rf{display:grid;gap:2px;min-width:0}
+.rf.wide{grid-column:1/-1}
+.revbox .rl{font-size:10px;font-weight:600;opacity:.65;letter-spacing:.02em}
+.revbox input{width:100%;box-sizing:border-box;font-size:11.5px;padding:4px 6px;min-width:0}
+
 :root{
   --bg:#11140f; --panel:#181c15; --panel2:#1f2419; --line:#2c3325; --line2:#394232;
   --ink:#e8ecdf; --muted:#8e9884; --dim:#5f6857;
@@ -93,6 +136,12 @@ body.dragging-now .handle{cursor:grabbing}
 .field input{width:100%;background:#141811;border:1px solid var(--line);border-radius:6px;padding:7px 9px}
 .field input:focus{outline:none;border-color:var(--teal)}
 .field .auto{font-size:10px;color:var(--teal);float:right;text-transform:none}
+.cfields{width:100%;margin-top:8px;border-top:1px solid var(--line);padding-top:8px;display:grid;gap:6px}
+.cfield{display:grid;grid-template-columns:1fr;gap:2px}
+.cfield label{font-size:10px;color:var(--muted);font-family:"Space Mono";text-transform:uppercase;letter-spacing:.04em}
+.cfield input{background:#141811;border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:12.5px;color:var(--ink)}
+.cfield input:focus{outline:none;border-color:var(--teal)}
+.cfield .cnt{font-size:10px;color:var(--dim)}
 .coverbox{margin:6px 0 2px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted)}
 .coverbox.disabled{opacity:.4;pointer-events:none}
 .checks{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
@@ -147,6 +196,7 @@ body.dragging-now .handle{cursor:grabbing}
   <div class="stats" id="stats"></div>
   <div class="spacer"></div>
   <button class="btn ghost" id="btnSuggest" title="Sorter filer efter faste regler">↕ Foreslå rækkefølge</button>
+  <button class="btn ghost" id="btnBm" title="Se alle bogmærker som de bliver i PDF'en">🔖 Bogmærker</button>
   <button class="btn ghost" id="btnReset">Nulstil</button>
   <button class="btn primary" id="btnDownload">⬇ Tjek &amp; download</button>
 </div></header>
@@ -202,8 +252,12 @@ body.dragging-now .handle{cursor:grabbing}
         <div class="coverbox" id="coverBox">
           <button class="btn sm teal" id="btnCover">Vælg cover sheet…</button>
           <span id="coverName" class="mono"></span>
+          <a href="#" id="coverSwap" class="swap" style="display:none">skift</a>
           <input type="file" id="inCover" accept="application/pdf,.pdf" hidden>
           <label class="chk sub"><input type="checkbox" id="opt_coverPages"> <span>Udfyld "Pages (Inc. Cover)" automatisk</span></label>
+          <label class="chk sub"><input type="checkbox" id="opt_coverCounts"> <span>Cover sheet tæller som side 1</span></label>
+          <div id="coverFields" class="cfields"></div>
+          <div id="coverRev" class="cfields"></div>
         </div>
         <label class="chk"><input type="checkbox" id="opt_start2"> <span>Forsiden starter på side 2 (cover sheet sættes på bagefter)</span></label>
         <div style="display:none">
@@ -237,6 +291,22 @@ body.dragging-now .handle{cursor:grabbing}
   <div class="mfoot"><span class="pvhint">Klik ⟲ / ⟳ under en side for at dreje netop den side. Rotationen bruges i den samlede PDF.</span><button class="btn primary" id="pvDone">Færdig</button></div>
 </div></div>
 
+<div class="modal" id="bm"><div class="mbox pvbox">
+  <div class="mhead pvhead">
+    <div><h2>Bogmærker</h2><p id="bmSub"></p></div>
+    <div class="pvtools">
+      <input id="bmFind" placeholder="Søg…" style="padding:6px 10px;min-width:180px">
+      <button class="btn sm ghost" id="bmReset" title="Sæt dokumentnavne og underbogmærker tilbage til det der blev læst ud af filerne">Nulstil</button>
+      <button class="btn sm ghost" id="bmClose">Luk</button>
+    </div>
+  </div>
+  <div class="bmwrap">
+    <div class="mlist" id="bmList"></div>
+    <div class="bmpv" id="bmPv"><div class="bmpvempty">Klik på et sidetal for at se siden her.</div></div>
+  </div>
+  <div class="mfoot"><span class="pvhint">← → gør et bogmærke til under- eller overbogmærke · klik på sidetallet for at se siden · sidetal på underbogmærker kan rettes · navne rettes direkte i linjen.</span><button class="btn primary" id="bmDone">Færdig</button></div>
+</div></div>
+
 <div class="busy" id="busy"><div class="bar"><i id="barFill"></i></div><div class="msg" id="busyMsg">Arbejder…</div></div>
 
 <script>
@@ -244,7 +314,7 @@ body.dragging-now .handle{cursor:grabbing}
 const { PDFDocument, rgb, StandardFonts, degrees, PDFName, PDFHexString, BlendMode } = PDFLib;
 pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-const LOGO_B64 = "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";
+const LOGO_B64 = "iVBORw0KGgoAAAANSUhEUgAAAZMAAAGDBAMAAAAc5ODJAAAKMWlDQ1BJQ0MgUHJvZmlsZQAAeJydlndUU9kWh8+9N71QkhCKlNBraFICSA29SJEuKjEJEErAkAAiNkRUcERRkaYIMijggKNDkbEiioUBUbHrBBlE1HFwFBuWSWStGd+8ee/Nm98f935rn73P3Wfvfda6AJD8gwXCTFgJgAyhWBTh58WIjYtnYAcBDPAAA2wA4HCzs0IW+EYCmQJ82IxsmRP4F726DiD5+yrTP4zBAP+flLlZIjEAUJiM5/L42VwZF8k4PVecJbdPyZi2NE3OMErOIlmCMlaTc/IsW3z2mWUPOfMyhDwZy3PO4mXw5Nwn4405Er6MkWAZF+cI+LkyviZjg3RJhkDGb+SxGXxONgAoktwu5nNTZGwtY5IoMoIt43kA4EjJX/DSL1jMzxPLD8XOzFouEiSniBkmXFOGjZMTi+HPz03ni8XMMA43jSPiMdiZGVkc4XIAZs/8WRR5bRmyIjvYODk4MG0tbb4o1H9d/JuS93aWXoR/7hlEH/jD9ld+mQ0AsKZltdn6h21pFQBd6wFQu/2HzWAvAIqyvnUOfXEeunxeUsTiLGcrq9zcXEsBn2spL+jv+p8Of0NffM9Svt3v5WF485M4knQxQ143bmZ6pkTEyM7icPkM5p+H+B8H/nUeFhH8JL6IL5RFRMumTCBMlrVbyBOIBZlChkD4n5r4D8P+pNm5lona+BHQllgCpSEaQH4eACgqESAJe2Qr0O99C8ZHA/nNi9GZmJ37z4L+fVe4TP7IFiR/jmNHRDK4ElHO7Jr8WgI0IABFQAPqQBvoAxPABLbAEbgAD+ADAkEoiARxYDHgghSQAUQgFxSAtaAYlIKtYCeoBnWgETSDNnAYdIFj4DQ4By6By2AE3AFSMA6egCnwCsxAEISFyBAVUod0IEPIHLKFWJAb5AMFQxFQHJQIJUNCSAIVQOugUqgcqobqoWboW+godBq6AA1Dt6BRaBL6FXoHIzAJpsFasBFsBbNgTzgIjoQXwcnwMjgfLoK3wJVwA3wQ7oRPw5fgEVgKP4GnEYAQETqiizARFsJGQpF4JAkRIauQEqQCaUDakB6kH7mKSJGnyFsUBkVFMVBMlAvKHxWF4qKWoVahNqOqUQdQnag+1FXUKGoK9RFNRmuizdHO6AB0LDoZnYsuRlegm9Ad6LPoEfQ4+hUGg6FjjDGOGH9MHCYVswKzGbMb0445hRnGjGGmsVisOtYc64oNxXKwYmwxtgp7EHsSewU7jn2DI+J0cLY4X1w8TogrxFXgWnAncFdwE7gZvBLeEO+MD8Xz8MvxZfhGfA9+CD+OnyEoE4wJroRIQiphLaGS0EY4S7hLeEEkEvWITsRwooC4hlhJPEQ8TxwlviVRSGYkNimBJCFtIe0nnSLdIr0gk8lGZA9yPFlM3kJuJp8h3ye/UaAqWCoEKPAUVivUKHQqXFF4pohXNFT0VFysmK9YoXhEcUjxqRJeyUiJrcRRWqVUo3RU6YbStDJV2UY5VDlDebNyi/IF5UcULMWI4kPhUYoo+yhnKGNUhKpPZVO51HXURupZ6jgNQzOmBdBSaaW0b2iDtCkVioqdSrRKnkqNynEVKR2hG9ED6On0Mvph+nX6O1UtVU9Vvuom1TbVK6qv1eaoeajx1UrU2tVG1N6pM9R91NPUt6l3qd/TQGmYaYRr5Grs0Tir8XQObY7LHO6ckjmH59zWhDXNNCM0V2ju0xzQnNbS1vLTytKq0jqj9VSbru2hnaq9Q/uE9qQOVcdNR6CzQ+ekzmOGCsOTkc6oZPQxpnQ1df11Jbr1uoO6M3rGelF6hXrtevf0Cfos/ST9Hfq9+lMGOgYhBgUGrQa3DfGGLMMUw12G/YavjYyNYow2GHUZPTJWMw4wzjduNb5rQjZxN1lm0mByzRRjyjJNM91tetkMNrM3SzGrMRsyh80dzAXmu82HLdAWThZCiwaLG0wS05OZw2xljlrSLYMtCy27LJ9ZGVjFW22z6rf6aG1vnW7daH3HhmITaFNo02Pzq62ZLde2xvbaXPJc37mr53bPfW5nbse322N3055qH2K/wb7X/oODo4PIoc1h0tHAMdGx1vEGi8YKY21mnXdCO3k5rXY65vTW2cFZ7HzY+RcXpkuaS4vLo3nG8/jzGueNueq5clzrXaVuDLdEt71uUnddd457g/sDD30PnkeTx4SnqWeq50HPZ17WXiKvDq/XbGf2SvYpb8Tbz7vEe9CH4hPlU+1z31fPN9m31XfKz95vhd8pf7R/kP82/xsBWgHcgOaAqUDHwJWBfUGkoAVB1UEPgs2CRcE9IXBIYMj2kLvzDecL53eFgtCA0O2h98KMw5aFfR+OCQ8Lrwl/GGETURDRv4C6YMmClgWvIr0iyyLvRJlESaJ6oxWjE6Kbo1/HeMeUx0hjrWJXxl6K04gTxHXHY+Oj45vipxf6LNy5cDzBPqE44foi40V5iy4s1licvvj4EsUlnCVHEtGJMYktie85oZwGzvTSgKW1S6e4bO4u7hOeB28Hb5Lvyi/nTyS5JpUnPUp2Td6ePJninlKR8lTAFlQLnqf6p9alvk4LTduf9ik9Jr09A5eRmHFUSBGmCfsytTPzMoezzLOKs6TLnJftXDYlChI1ZUPZi7K7xTTZz9SAxESyXjKa45ZTk/MmNzr3SJ5ynjBvYLnZ8k3LJ/J9879egVrBXdFboFuwtmB0pefK+lXQqqWrelfrry5aPb7Gb82BtYS1aWt/KLQuLC98uS5mXU+RVtGaorH1futbixWKRcU3NrhsqNuI2ijYOLhp7qaqTR9LeCUXS61LK0rfb+ZuvviVzVeVX33akrRlsMyhbM9WzFbh1uvb3LcdKFcuzy8f2x6yvXMHY0fJjpc7l+y8UGFXUbeLsEuyS1oZXNldZVC1tep9dUr1SI1XTXutZu2m2te7ebuv7PHY01anVVda926vYO/Ner/6zgajhop9mH05+x42Rjf2f836urlJo6m06cN+4X7pgYgDfc2Ozc0tmi1lrXCrpHXyYMLBy994f9Pdxmyrb6e3lx4ChySHHn+b+O31w0GHe4+wjrR9Z/hdbQe1o6QT6lzeOdWV0iXtjusePhp4tLfHpafje8vv9x/TPVZzXOV42QnCiaITn07mn5w+lXXq6enk02O9S3rvnIk9c60vvG/wbNDZ8+d8z53p9+w/ed71/LELzheOXmRd7LrkcKlzwH6g4wf7HzoGHQY7hxyHui87Xe4Znjd84or7ldNXva+euxZw7dLI/JHh61HXb95IuCG9ybv56Fb6ree3c27P3FlzF3235J7SvYr7mvcbfjT9sV3qID0+6j068GDBgztj3LEnP2X/9H686CH5YcWEzkTzI9tHxyZ9Jy8/Xvh4/EnWk5mnxT8r/1z7zOTZd794/DIwFTs1/lz0/NOvm1+ov9j/0u5l73TY9P1XGa9mXpe8UX9z4C3rbf+7mHcTM7nvse8rP5h+6PkY9PHup4xPn34D94Tz+6TMXDkAAAAYUExURf///////P3//s/Q1xUvURIvUREvURgsTXSvIRMAACF2SURBVHja7Z3fk11XVt+/a3djtQw6e63TAkumfM8+Rxon/Bj9aBtTRUGN7JkhT6HCTDJ5gDykCKGKvEAGij+CX+8wJLySBCavYTyWTFGpSmJ1Sx6qBjLWOftcM0gW1tl7H7lGLU333nm4rdZttST3ldQ/7k3vF1fJvda9n7vW2r/X2gQA7CHBtJ/XmK7WZ+L9YLkmVzZgBQBBIJk9X04ZCYrQxEHTBQcyCgQAHKSj15bgpgyFod9fv9ZqX6FmrwDAl5FOVZ2fNqto6s+4QEKuBqAAADVVhvOpczDfpGXLxrKgJMwBAK+++BNVLf9AU4Zys2ia695Luk7EI6v4qiqb3OfTZpWztg5KMbxhKUcoKr/gWTs7bSiuazvNusuHdByYz13ZlHKFSkxVqPgMrTQ+qhA7yVKuX35nvkM9dzqVVqaI41pQ55yTW03CgLy2UNVgDfNVI1UyqZimMUWZUBNl32kYaLWnsFQAmPdm0Ri/eHmarMIhSWo+sAzVJt0Xx5dq9TLmk8r7IWw5TR2xj3nSyXrpKueHSc47ScC8KgufUt7GKUIhIJypO2NNzaL7qqlSAOZPl559IDNN3VdUNl1sqDdWAqeSSwf9fczf/GOl2eu/nCYUFQ36sukSMGjzSru8649ivkF0btrmxFUcxg5I4FCZGJIHgHlMYYt2FNmiGnNc8XC0ZJyXaWTRYeRH0Rw/ZtLG4nfeTSFJZaNxAGzx4WdKNNWIYSodrGZYACj957VPZmPJqKYRRancAECqCh19u/GvU2mVgUIAgP4LwRXEtOFg/34KUZqzdvAHAI7TgBOHSFMc9oE7AGgKNg1AUxwrj4mgQ5RDlEOUQ5RDlEOUQ5RDlEOUQ5RDlPFVZKq6duITltRyesoPTj3MxDJw4j8dhfzQ1BOqFolPS4I85+WJZTioHViFY4FqQtXcUHjaGxgWzJMefnZ1HunTUYamLie1SsUSw1OiGFmJftLPW0whfjrKK//4nW9M+nUo/5Wn3hqoP1AT33mg9FvJf3oPdpv9xF+ndO/6p0WpQjd5V2E87SRW7mHiWInFrc81T4nSOFSTxkqySDtAQfI0aayoqK48bdiL6IkdLE8UdjBENp4m7lgzZLU28lQdsg52Yud0uzjaG5Vamw7IiewzofAwrfdMBwTlmba/rUK4raFnwSoxuNgVaQZQoCK8n7gPP4gO1kcYdMNWTz/KIOjg07U3/QyEPRxQpjaT1KcpjxUAyrrActtg+lEGwMd05VgzAyhDStdWymE+AygcvVw5EAeaz4wSUbjoBm4GUDyGKjU4AP3xs19BkMRww0GYfqvAedt33VzQjqYdBUAmLjM+1zOAQrz+burZTnusALCk56Fj6abfKhwRGw5uBhwsGWksijADKKDaOOuLGUDxVqjzSmbBKsnVRR1AxGnaUQC0rnZdBpkBFCpWiNs2zADKwGVNXyaeBQfzXVOA3QygpBLJQtMMoLBXdW+tngGU4LLi4zPSzoKDwdv6XV0ggaccBQAKp1oK+7UEe6538odcGxVVLdNvFTg71+X7dQr2XFEYziqn9QygxJTdivt2oPdcUQLQnGr3qz9+rmGv804uDSjNAIr38LcLJ2n6HQwAus5kmA2Uwu7XkuW5o7TODWcEBdHxjKAYXvEzghKTDrPiYG13a0ZQbDLRSbEPk+PdSLy1ivfjQG8XLrIPY9OnMAMoysQqOrU+Cz2YQl0sd0uz4GDWANq6GUCpIoBuRc0AigXgKatnIVZggRSb3D952RIyM/FcTeNJy7pdcQSlkGpG/8TFwKhSxmRLOzzp9uyu1KbI2DXHy/TEI7CWxU86JXDoeI9RrIH+2OKJ915YuYl7OZLqCTkAu+JgbJ2uPT9xxBf7NIrjXlsFKlrVnXnit3W/nSa+pCipl25vUfrBMA46O3zSNmWsg5kYZb3d45kxBiEKdfaJ949VgFyedPj19IRcnN0Je8A5SsJtFp7QG3eT9mCdSk9I49q9CYZx77ri9mNRfJi8B1OQsNdhD0BZ/bFaMY+N0hgoTZodm/zOcr2edyNab0411eNYiAmTTtRKjuL2HiXr2V8s+LFLMILGpHvL1OVuP6wSG0ND7h8/NfQ88cSl7zntPQozLNVvPfZX9F71k+6TF2h5HxxsqAmFs/K4nF+V1icuEemwLw4WHeCpK+vCVo/6/Oy/Tl5KldKvhrQP4woAT06XNt+jdf6uoqjs1pW4tFd7yLuKkkA1raRiBlB4iLoxYSasEnWywetZiBUaGtcVs2AVb3TqPO1RrOxqNdDYwJVN3ha0FwWTd31DtHXRtM1e3HTd/b3dwiJhL+4f73q52Zg6a+D3oBvbdauYYapbQjEDDuahE6D9DKD0xsbg9yLtYNdRipr9x0XbzEDYN/DA1dISgDTdVgEAeieyRtKYfhQ/aDOfUZgBlEFq5rTSacpjBQB8yK+pVIibfqsgHQtZUm4GHEyorUvV0Aw4WJPH7P1Mdvk60t68XtDB3/7FmXAwAOjaWs8ISlEbPyMowTUyIyi66+2MoKR0bVZiZahu9TOCEgu+doBRuDQGtMNobjg69nRAUfrmlEXhzA7/3Hq3mzPKZ0IxTCWG2GGSxzCu9L46oCjeq4J2uM5VJlbRD7oDihJNOl3one1xRYW6uEzlAUVRSH3ueWcOZg1UbK8cUJTOE940akdHvVUE6qLODihKqVIW9M5u3VgA3HbhgKK4SFCLzpF8up4IC1XGPncSDiAKAOB86ZPsMPRr+vhauVsFhZ59FWlLpNrsaCPVE64dJ6cPqFW6XMGbnXViyjh5z5YH1cEERpPlHU1eYlJex906l3xmFOrUopO4s2XVMBLsbj0P/swoTjwtYWcz3jxWMeuIDyiKDnHpTV/tyMEyON69tMlnRgmJmtZ4D/Xp76lYOC+yYsugywOIAgB96dxOdXWsQ8cf1gcUZVDpCtjZSzTGxo9Jry8eUJS53gBxZ6qGiRqrqu6AojTuta6C3WHo6+xi5+WAopw1ZGqzs7GFAZ95nw6qVSjkZqcrfAzh3JmDipJ7UjtVFCVD0bzPBxTFpSSDtMNK5s7Dx/ChKp53yc3ntjv5Omc71uXTx0VsJ35Aaq9Q2sLu2GkUr69g8LzLPD03lPzUzp+gSsPQeGBwQFFcKHe80GXDtSP0BxSlyHe+H5xsSj4gHlSrZPnOH2NIgEOpDiiKamXHDtabULgYn/PC+Jl2XFT2oASgF/vaVVc2OxnGYwOH534h4dm2v8dmXToWHxZST2th0x4Phgaf2y4H9rGe8TM5WDQPHEwsM3dRmum0ilFzm6HhOB8qQZpSq1jkgwfrEKuvKJlWFKXnxnZeijBQ8dKUhv0AD+JeM3RvJZtSFOsfXLj13vtMf1KB9que8XO92tY785M1h6d4pfVATVwAQCvVVsPUYPpRvIbi6HkGUCQhy0vqZwAlcdfmhQxmIOwD+uQXMz8DKE4KKF0PZwCFk4dKVZO75Kc8VgBA21B6p2gGUJzkEqv9CJfnjsLrvJS7yDOAgr5738CkWXAww6YMah+KNT73TAn2Kcg5Nws92DDSoBBXzIBVNFIYlt1Vlfb63aLdqdo2lIyfoq7kAUQh5GwV9vhFhl1BkUQmJG+a6Q77DZg5R3s9tuyKVZqAxSXn9ngJtitWyc/O+Tef+wHdvqDEqy4FUXYGHMzrxD13TOzyerpRACAbNI1yqp9yBwOAuatFHlVMM4DSlHNJDQxmAEXHyqSgZgEFPeUFUM6CVWDLHDu8Sn2wUdpUDtnbuHcoz9YZP6HuF6PTuqY2TodVzOBTDrcrN5gSB/OfciDclxhOTazQE29PJCqnaIj0T0Tpcz0lKOyffIRaZqWZEpRPGzQshXxqHOzJ76iyZTUtKP7JnbFnL28J03SE/ae289ynGUHpNfOMoGDRyYygpPKsnREUoVzPCMrVtpqVWCl0KGcEpRFeysWoWYgVpPmCLM8ASrD9ch5pDy4i7noBugLgWqidAasgBSyVaRYq5/o+w5Wqz2YhVlLfDfoLNAMoA8pArnQzYZVAiT8xRpBPe9gDCDj2+d7l2Qyg6NATG9AMoHhGa3qfZgAld9CV3u2brnuCknQWqNytoid7ikK+RTjPdgZQmpwl/r0c6M44px35Pye4uSTJUHVgUeLO31U5Fkv2pt7FFeWzTvJ33MH2t/sy2N2877Z3RYCZVZZIDi7KjrNTfUo55+bAxspEV+9zv4jdTDvYs1jRqiuU64rmgFol7nyh23eUkoR0YGPlyo4n7olSsCUPIbs1Q97Tu/MDX2bQxhzMWJmo9X0ubBVmwCqJRfcwgxlAKbP0+Q7ezoCDtV3eL7mg4vRb5ZisG0GcBQfrkwoluJ2FsEfq+tInKUVNOQoAZEsC1+rBlIc9ANweiusHwzgDVkkQgjU0AyjxTFkkqc0MOJgMsQignQUH06ByVx4p3HOUYYjK8NSPKwCgE+lqF4Lem33I9QWE+fk7mN0XlKvnn/82ZY59QRmQee55U52Z3w+UIfLnXkxI7Y+DZVw+9z4s7k/Yz3H73GOl9PuCojuz9Lx1XnoQ9mcrmfjAIJfq9tN8rCPfLgETW6ZU7barDAWDSsZgxW+G/dU1N/GNh+iOH3va6oxvOj9xL+Yecdt8yIm7Yfb1semkodcnLihB8vTPin/4apz4toh0+bY0ppR8XwyW0xiKzRozqepqfaV4+nipJi7SKnm97R1zTTl8V8u4VbyuJz3HqeXpl1BUxg8n/bw2W9QP4/fMuPVOMb5eqZHnk3b2jOapX3uX5TKbVJapvbVNpjH6Pa3qMZTSa0wahznkqetPNOJl0s8zyHTYNjQOv2/Zsn+AkorQTNo71nn/1M+ja9g06edF3t5f5n6tyUIWxqwSAiZ+AVHS09+L8uDJHy0KW88+jfHLavAd7/Znbf9clyhtMnP/J+gZQIlFateb+9eA1DSj5PBnmtRt9DxTbRVu0ne6nJoZsErDccibPcFUo/DgYlJ1LGfAwfQ3S5tMSDhsh+2wHbbDdtgO22E7bIftsB22w3bYDtthO2yH7f+jVhkoZUyuAAEUSGCMglGAUqMEDTP255LfP0JTBtiQqYx5SM/9UyADAAqUA4CpRvoqVEKSbz25v58Hpjb+VVUVqq25Lptyj2xEqfRhoGzGgRioK0RYFQHSXg3UqJxnBThsJmpRAiDUiQNgMBwEAH5MjzcjMQFGx0Fy/1SIHrwDoKKxxHT/SXVxyDsA9+/xiNQgBm17cl1FYx+NImKhwwAYXf2lNPpbo5IHwgAWgIqjzeUIACWhBlBFShaAwgDDaJQb16NGqZ8BUUUAJVlTA1CauAZQ1SYA4ASo+2haoZYRUvIAKvjOqNEfYuMnuS/3+HwxEqgKEAFLLrkxCgY5IKN/B1CJiNx3sI0dc8pH/8+ICCu1RY8ZyYmMnGbzruSGqDEKYky1YbiRXrWZMzm2JS88/kXH5B7R5omJOwWrEIykpIBooaCyDMNMjbJLTXTV/dNc6kZnlhKyesPdepPgt+iBiQDgNp5Xb6V0HoAInAMQgArRgthtnsPr+3+sBkNs/G3yeks10ftyT2gKMFUFglICQmUAAxGosYhnU1UAYGj0U1c0+sUUKYONH/S+HlGlbIbuhvhGqGz+3CKMSsYSKyuzxQ4kjGp7ipvIVkONtTk+wXRS04u16CALC6Lp6EfO9IHlqBZNL7qR3tWjC432AOioHiYADqv3EgAyQdLqKo3ruZP8vQRAXkrJA+C7o2CWI75yAOQE39VH751sFu6U/v53vD4qH3jiRcEqAHNj1diFE+LHOTbkHn2yPK9eGsh7K1yz+nL7gVNf7vSfw1kzJxdscXGFawCQvjrF9eIyAORfdtnvA8hfN8d+H8DAFvQV+qG/CON6mv6rHgBqtwwAc7/dZX8AgH5qJJNLXuiLNqX8V4Zf3Pgix/6i/xUPoGZz8TKAl96Q/2XzL20ebv/RmNxjrHLnRwkp3TA3+hdXP7lx88fo+rcDYfHUP/3bk/dOriOUPZ+89zMLRxZunzzRKJTtj7WrL9xbOHG94jsrADz5Pnd3/ucWPf7eyy+Qf+nI3Yrh5eWPTr74NxbAasnXV3vMLb18AvdePPFtvvmDq+xXVz9ivnP9H27+OAHW3KPVsjX+ZEHfXb35opbVyN92zqUxuceEPQBw2FopitLxM1crNPL6ZZUyDpWA/SvDU7ismjmAlaNHXgMb19MqjZDqU85trRSSYvXDyYXPXqXTzs+dI2QtBj6DBxr1Sjjzrc++n4czYTMgHPphBeCDMbnlqq7qR0U80A/illswg1OfC2Vrpexz3wJ9rrl1dF6q0jOQSB7zXMS4nsIUAeoUy0Nvcw+p/VxeHhueHcQ3G3jnguSUwZ0Dw3wYhoNQpM/mD0YOcoOBc86Ny4nL7eOs8n2zNXMhd3Sta6uMJOuofZ2T/se6PmVCdUXBsyuL9pGXp8b1zP3gn7uwxPnpW35L2g270utrdarfsq7wf8Sh/NLwla87fi/0pf/JP9Sp/6mz78uDu7vH/kioA5CPyTnxA/toq/ApGp9m4UOx8dbVtDxkEXj6nJl7Z8V319iI8dAkivmRl1vG9UTEFOvbPuUPFZ8rOaVrqV1+J1OixMMrb2OwAcAxwHn9MWuhB5ZUOntYbslFwqNRELb+Hxqcb/zApWUNrcrS2R+qk6Rrl66SjoCHzx9zY3JMD1nrK/feeSu09QeslQIFXXiFBClTVw+4Z3JsGnUlAnDL4y9ReO4hIjIuB/OoV0TU6BtsTfA7h6azQXQCLcaOKVtB6fKyMzZnEFIqH12SeVyPaDYd9PI52Zr+nOXwFiFPsIwOAHJ4dNG0XmvkSjnQMf/gUVOPzjrn3Ba5R9Z5nweAwLKlig/1uassjF12DVTelp0HozmVSJQBKKiz/pEoY3rqH/K+8gj1w0W1IzLuXJOoziR3jj0Cx9KHyHkwF6PoIQXQ5ndlyGj6OCbHLI94i3YeACKvB/P3o7lzQNDsoqqBGm8DZYj5uid4NnB8K1qPhExW+BGJQVv0fJ9SMgDAzZxn2VhRoCeo+BnqnKde6da0SOR7ILC1565FCp7Ovp8Vm9a1XpPKiMO4HNtB7spE6BhWsYOGyuYBwK/PnWvh9E0AfM04whg0La2sK8BYhVNFdhlAGuD8lYy2j7rjegDAJvwwjwYcDwCRAkfpUlss6YuXtQPilqDzhtlTftWMLVJOz4Feczz4Tw/JJVMDyEMiRBSWYecBwA0zcf3oZ7bcnNpyQdE3hGicVdHEEPm2+GaeXRy+Wm4bpcb1bEQiUQKQ7l+xTOh7Yt0yLX75mnSNSg+HrgxfLVD8t81YucUaFPKVbXItlV43gEjk1sCO0gsa7qnl0QjOgA2aN0PVgqJvLSqYIfxii4RzXqtygO2Vdcb1jMZJBkIC/P3yzOxjXH+Hs0FmFo+zeshJU3j9C298VaO7+KAvNrpNsbD8CLkf+NXSUL74izT3xX+2aEbpBYOGj58HFwAQfQXekhOvBQaqjiqCbwGQlWsBS/SIEhPjejaiJ4EBszG/rRJxyeXKsA9Bskocb+0J8w/NXFafbYruAWJPiag9Sw/L9TFpd46KiCuqxPrxjawi6yhjeAKA/FxtePyBZwOcaxCNqRX5xYItUuciIW6v9zWu575JU1Jk/eiNr468hUL2dkf9NeXOnwNtWVo1BWIjzblvjn3+sW+8940//t+/t/KwXFQ5u6t2yIi2yobFhVEPltwr/vyQu1HoAltJgu8AwBqbymtDEc+ml1YQt3XI43pGkTF6NZ45jDrX5BmRsH4t5WUj3yKkLfkC5bLSVXSXoVx68PMEzSolelhucPvcsoCJIVQHHBtZxbj37VVY2RiTHMKDb2mtJqOAoYFRFhlrY+gymB9RI2iLHgAwPbyP2AwrKnxC7ZRz37lMobgAs2Ua687838t1XnHIHjgYw1iG6bfJWVzxcj5a5ehW1wQexUobu1OneLSvo8HOn5cEEZjPn1NJN6DEKHw7NzCFWI8rnfY4P7d9xB/Xc44BpbKUC8GLKAORnGCCF5NR45vlxK0PWxaEyTbX/Er7lvdj+fi9y21nuz4wxuWIQ2zyxCZTDovp774+el0gsWvAvDnzCR6l0QG3575wRkU1mDsvwTLsnLUOAJTzul2X7Q42rseDYwOsR1em9pqESlzzivIur44vafJd569wvn3S4Irib84Gvdl1+Og9AHh96vVxOSPnk1sWG+ac7pc+X+mRgym+hfXz/sFsN7YcfBKkb70GuLnIXZmAEkgKAFzswEvbO+NxPV6YBUqG7C0nxa62ANW6lMW3oDTYx4GPyTyso3u/0RWGm0M056Pa4dnt17bIdZY4hTKnV9rUqaWfkhHKoIVTjd406q2AXHtyJevGBIdWyFZKyvXB/U1GN+yvbH+wZFxPzaQEcoaTIKFoq1Krql2sWzuwZabBotSjJnJpmVjMgyxjn0Y7nR64Mi7HJEWCBaeY6vf8+pv3n6/wnVMPrlOmdJ7YxDnRmY/k9PlPitS4/LzC6Po78TGPwj9idvxAT0lZ7ViuYqUFBwInl0RngB52x9mKl3M6YfurOT5LqTfNg+4gGVRVValk47hcS4MPv8KiW7DE7k++FUadcavzpirtpoOtN96cfaf/TKHqOoi+dKZ4RTV56aHTBiq6s63etmYY12N/AkLlm975yOjSUnynF1bUZ9GV7jSCqq5QB9M8PNCatreSP8gxNrnNagDcu6VxuVKR6DJ+cFurH37zPw9uBZ4HgAI+9anYtLda+S13+7XTwjYBsVHUmC8uM7XnvmH59mi8cNxu74zH9RR3fh4x+OFPXi6boL50pXj9VGLKVjTc+Y7fQNZr93c9mYdrCAyp/rfeSXf8fgf2FqMF8B3bbJFrTkOHoPkHlhHnz9Wv6lEG3rCIdCv4zb2HOr9oIsj5zqnSpW5lqSFDWf+e454AoA/lFZzdtmQY16OQuA+6uGihMnWp8ImCtGsQq5qqkVf83EoKgH3YKpHi1QE/sLhyQxYA1HNrxuRy7r7h5fQcoev16fx8Y5WiIsbGR+f0IoGDGBhJt7oQXArRxdqhW7Fl2yAca1ofIdogptoVw9H8PYkpzxt+SA8jUThWzF1bTilKuuWMYqbP1txwrBtOVzjp2kU3ynXMPLTiQWugUCD09FZBPYH5rEpsOHYNp6J7b1zO59o51xkJRs/FPDjMM1oDAKk3jnoq686LowQpMbjoQw8Ag7fPf97X7tZoIjM69nEhvHJ/RZ2ufJbG9SS/KPWoE1gGgIYS/IW2ettZVbk+vyYX4FeWBQA6oDwGMLm5vkBVk5VbPzfUpADlb1NyAKjyntr82Lgco+lzrwjU6g9OlR80BoSNreqqZDF5mZdSGYiovILcrwxtDMQYQQUQbSwANv7LSpTkJY/rIeTl6KBh9G8VSERt2VKXChtPlFMpFVcVmAiGRUC5VEqYlIJsHFpUKs/BW+QoL/OqzMtKuCJhEM9RfuPIKoD8Ovw9ecHeye++EFZXX+4W7pxYWJDVVQBy7zpOWL6hsj7J0RASAMV0AwAW7p5wq3f1TYzpKfkGXhaRI86/7ACkE/3qwks8ZHJqwNxWom+klx2vAqjY3vELN0Qf9Sa3J26uGr8QfLx35K6+Wyz41UpEOCFxfiOXMTnzkf4I1xeuU/Kuur5aAXO0cPekA7Bw58WTcfWmvpfdgDc5oBfCTedPeACrd1Tpj9472fnC33vhRFoFwORlFcCL3wtywuPOuJ7W4V7nnKOjL8MBOLoQirs3tX7xhb5Qycqd615yS3cAANflHvdINx1COhkW7oq7W7BaXXjpZuFvyL3OOcd0dCEcSQtuXO6kf+mj4mb5DyeErpe4fu8lVJsnUbh/fJgrEagy3zzsEGUEm94xWnlWZnT8qZQRGFRb9TxU9VMYVQUlSimljEgFCEwJAFVF4IpAecWUQ6GsUAmrCkC1MegzxKCseFyOQUQ5IKxKA5AxIwcerRZESaWqylSlMMzotFg2zm3yjcz8Cmp0lMsbE3RjlBJW2/SMuoSRXythgVEQVsZUypCIqu7/OUSACotfpd/hxXMlU64ACCpiwijbnOg1/PRvmi1yKq9KpSoxFSBVJQrKbyxOjJCDi6lr0DSOVQB0lTayvZPrQlQAEMs42uT0NJq42IAIjvywHgDQZjAAgCheELRxPg6HdoBSO107NzpF46Ah3szHfM2fhkOKSSo445DfP6o0r/6c4F2043Kxa1IW4bwj4+rootmXqwI55aQ4N1UuVSUqL1HyS/9RSvxOXkJJmSvkOamcUOUKpuSXfkOIjRKYUpGp8Mji23P7gbKKk5pvnETz0o2QQlxNL9PCj34QjqjXLl/nI+r60RPQH+k7C0ePHLnBJ4fh6Kk65Td63JW7N4hwHXTUHxCUkm149Ze/+wvfHrz0Qvp3f/fjX/mJ7/7tj64f+effM2ejDvTrK0dXP3rjX34v3fz17pc++7fM97506ru/8NdvvPRvzr772z/97fDGL59dPuEfs5O/x80mqAt4aw2IPf5KfQF4K2Gj9nbEfNSe3riAn/dm/gIUrP0E+BD5hXnMv455Li9gvvI4GCipNa+v/e5fQ1+gzOD42u/+HsoL1lx6b+0PQWzeVdFfePtrMB5vf22+oeIk/pLXIn72a/jZ/wJ3fO3PLn2ODgiKQcI72sJjRQE3/7xgAA40HwugueBrJejSpbeAWx2qrPe4anEb3+zwjoW68Cf+Y5Uecyix142o/9e/W7ywnq+V3b/6H331BawN13IQw37vl4ZrNWdH1hLbn/lkzS6uJc+La7qHWRvmuFJB8GvAWn9ArBIyWovBKiAx3n/9C6OV8IXOvEs+nk6GLWJfI51LBNhKWbjj0aLzawlr91d5B8MqmQdMOHdpHiqguPD2tTv/ASAooFCESyHAJ8fm0pGLiQGb8mju4HiUHmSBtT8cUBoeEKtYhXmvL0SbmuNrQzg5F+ejWWsQk1U/W+tUehBdAKD+PplkPqFg3vUIx0Hz8ND4kUcd6+5P2PuIahHgqP4FIri/8FdMFrjwvsfou5q57FUEUHYutbD8TkDklDhFrPN8eftCTwfEwRDp0heB9keO/BYi4YtANBcBjd/8+m18U3mxav7XcK/5yp8B78K05gKgzF8ZvsT/hJpLX8Q9Hw6IVYaIH+Bt8BrW/jQNvoa1S0CaT/kldBHDFFJx7BLW/nsJeCAivge6sILUIOZ4l9/D2p9mOCBNQQktfhUwUlY5GVKsxBhjjFr8al4pYiPEuQgZFlUqrnKpSKmSTWlgcojig9KDhcGQgDz6PNVcEGIOcdDB5acjaogOnMRJI6pPhRUHRV7YNQpeleRzLc0BcTAFpIwRlW8Sc99AIjfOkeSfuXDRVRKGOijnnWLPZBF1j66Lna8SVexT8m1HODiNjvzGNich89NfxfQ1wvajpso8y3tG+2aoHBoPO7xKlJ6+OsP/A8jXzaNhPnC2AAAAAElFTkSuQmCC";
 const FONT_URLS = {
   r: "https://cdn.jsdelivr.net/npm/@expo-google-fonts/montserrat@0.4.2/400Regular/Montserrat_400Regular.ttf",
   s: "https://cdn.jsdelivr.net/npm/@expo-google-fonts/montserrat@0.4.2/600SemiBold/Montserrat_600SemiBold.ttf",
@@ -269,7 +339,7 @@ const SPELL = [ // [regex, replacement, description]
   [/Consession/g,"Concession"],[/\bCertificat\b/g,"Certificate"],[/Certifcate/gi,"Certificate"],[/Certficate/gi,"Certificate"],
   [/Safetytest/gi,"Safety Test"],[/Effectiency/gi,"Efficiency"],[/Inspecton/gi,"Inspection"],[/Proceedure/gi,"Procedure"],
   [/Controll\b/gi,"Control"],[/Paramter/gi,"Parameter"],[/Materiel\b/gi,"Material"],[/Weldng/gi,"Welding"],
-  [/Recieved/gi,"Received"],[/Seperate/gi,"Separate"],[/\bBit Frame/g,"BIT Frame"],
+  [/Recieved/gi,"Received"],[/Seperate/gi,"Separate"],[/\bBit Frame/g,"BIT Frame"],[/Seafasting/gi,"Seafastening"],
   [/\bdiplom\b/gi,"Diploma"],[/\bcertifikat(er)?\b/gi,"Certificate"],[/\btegning(er)?\b/gi,"Drawing"],[/\brapport\b/gi,"Report"],
   [/\bsvejsning\b/gi,"Welding"],[/\bsvejser\b/gi,"Welder"],[/\bmaskine(r)?\b/gi,"Machine"],[/\bm[åa]lkontrol\b/gi,"Dimensional Control"],
   [/\bsikkerhedstest\b/gi,"Safety Test"],[/\bmateriale(r)?\b/gi,"Material"],[/\bmaling\b/gi,"Painting"],[/\beftersyn\b/gi,"Inspection"],
@@ -342,7 +412,7 @@ let coverSheet = null;
 let saveTimer = null;
 function saveSoon(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveState, 600); }
 function serItems(list){
-  return list.map(it => ({rot:it.rot||0, pageRot:it.pageRot||{}, key:it.key, fileName:it.fileName, size:it.size, pages:it.pages, title:it.title, subs:it.subs,
+  return list.map(it => ({rot:it.rot||0, pageRot:it.pageRot||{}, nest:!!it.nest, orig:it.orig||null, key:it.key, fileName:it.fileName, size:it.size, pages:it.pages, title:it.title, subs:it.subs,
     hl:it.hl, matId:it.matId, suggest:it.suggest, suggestDone:!!it.suggestDone, checks:it.checks, errors:it.errors,
     encrypted:!!it.encrypted, text1:(it.text1||"").slice(0,4000), overview:it.overview}));
 }
@@ -356,7 +426,7 @@ async function saveState(){
 function deItem(d, bytes){
   return {id:++uid, key:d.key, file:null, fileName:d.fileName, size:d.size, bytes: bytes ? new Uint8Array(bytes) : null,
     pages:d.pages||0, title:d.title||"", subs:d.subs||[], hl:d.hl||[], matId:d.matId, suggest:d.suggest||"",
-    rot:d.rot||0, pageRot:d.pageRot||{}, suggestDone:!!d.suggestDone, checks:d.checks||[], errors:d.errors||[], encrypted:!!d.encrypted,
+    rot:d.rot||0, pageRot:d.pageRot||{}, nest:!!d.nest, orig:d.orig||null, suggestDone:!!d.suggestDone, checks:d.checks||[], errors:d.errors||[], encrypted:!!d.encrypted,
     text1:d.text1||"", overview:d.overview, missing: !bytes};
 }
 async function restoreSession(){
@@ -377,7 +447,7 @@ async function restoreSession(){
   for (let i = 0; i < state.sections.length; i++) state.sections[i].items = await rebuild(st.sections[i].items);
   state.unsorted.items = await rebuild(st.unsorted);
   state.skipped = st.skipped || [];
-  try { const cs = await idbGet("files", "__coversheet__"); if (cs && cs.bytes) coverSheet = {name:cs.name, bytes:new Uint8Array(cs.bytes), pages:cs.pages, box:cs.box}; } catch(e){}
+  try { const cs = await idbGet("files", "__coversheet__"); if (cs && cs.bytes) coverSheet = {name:cs.name, bytes:new Uint8Array(cs.bytes), pages:cs.pages, box:cs.box, fields:cs.fields||[], rev:cs.rev||null}; } catch(e){}
   const missing = allItems().concat(state.unsorted.items).filter(x => x.missing).length;
   const n = allItems().length;
   if (n) note(missing ? `Genåbnet med ${n} dokumenter fra sidst – ${missing} fil(er) mangler og skal tilføjes igen.` : `Genåbnet med ${n} dokumenter fra sidst.`);
@@ -448,8 +518,8 @@ const META_KEYS = ["name","docName","title","client","date","project","package",
 const meta = { name:"", docName:"", title:"Manufacturing Record Book (MRB)", client:"", date:todayStr(), project:"", package:"", scope:"" };
 const metaAuto = { name:"", client:"", project:"", package:"", scope:"" };
 const metaTouched = {};
-const opts = { dividers:true, dividersEmpty:true, a4:true, turn:false, cover:false, coverPages:true, start2:false };
-try { const o = JSON.parse(localStorage.getItem("pqa_opts")||"{}"); for (const k of ["dividers","dividersEmpty","a4","turn","cover","coverPages","start2"]) if (typeof o[k]==="boolean") opts[k]=o[k]; } catch(e){}
+const opts = { dividers:true, dividersEmpty:true, a4:true, turn:false, cover:false, coverPages:true, coverCounts:false, start2:false };
+try { const o = JSON.parse(localStorage.getItem("pqa_opts")||"{}"); for (const k of ["dividers","dividersEmpty","a4","turn","cover","coverPages","coverCounts","start2"]) if (typeof o[k]==="boolean") opts[k]=o[k]; } catch(e){}
 try { const saved = JSON.parse(localStorage.getItem("pqa_meta")||"{}"); for (const k of ["title","client","project","package"]) if (saved[k]) { meta[k]=saved[k]; metaTouched[k]=true; } } catch(e){}
 function todayStr(){ const d=new Date(); return `${String(d.getDate()).padStart(2,"0")}-${String(d.getMonth()+1).padStart(2,"0")}-${d.getFullYear()}`; }
 const allItems = () => state.sections.flatMap(s=>s.items);
@@ -469,17 +539,26 @@ async function readEntries(entry, path=""){
   }
   return [];
 }
-function detectSection(path, fileName){
-  const segs = path.split("/").slice(0,-1).reverse();
+function detectSection(path, fileName, probe){
+  const segs = path.split("/").slice(0,-1).reverse();   // nærmeste mappe først
   const norm = x => x.toLowerCase().replace(/\s+/g," ").trim();
   for (const seg of segs){
-    const m = seg.match(/^(\d{1,2})\s*\.\s*(.+)$/);
-    const name = norm(m ? m[2] : seg);
-    let sec = state.sections.find(s => norm(s.name) === name);
-    if (!sec){ const di = SECTIONS.findIndex(n => norm(n) === name); if (di >= 0) sec = byRule(di+1); }
-    if (!sec && m){ // unknown numbered folder -> new section
-      sec = {no: ++secUid, rule:0, name: m[2].trim(), items:[], open:true};
-      const at = Math.min(Math.max(0, +m[1]-1), state.sections.length);
+    // "5. Materials", "5 - Materials", "05_Materials", "5 Materials" eller bare "5"
+    const m = seg.match(/^(\d{1,2})\s*[.\-_)]?\s*(.*)$/);
+    const num = m && /^\d{1,2}$/.test(m[1]) ? +m[1] : null;
+    const name = norm(m && m[2] ? m[2] : (num === null ? seg : ""));
+    let sec = null;
+    if (name){
+      sec = state.sections.find(s => norm(s.name) === name);
+      if (!sec){ const di = SECTIONS.findIndex(n => norm(n) === name); if (di >= 0) sec = byRule(di+1); }
+    }
+    // rent tal (eller navn vi ikke kender): brug nummeret som sektionens plads
+    if (!sec && num !== null && num >= 1 && num <= state.sections.length && (!name || !name.length))
+      sec = state.sections[num - 1];
+    if (!sec && num !== null && name){        // nummereret mappe vi ikke kender -> ny sektion
+      if (probe) return -1;
+      sec = {no: ++secUid, rule:0, name: (m[2] || "").trim() || seg.trim(), items:[], open:true};
+      const at = Math.min(Math.max(0, num - 1), state.sections.length);
       state.sections.splice(at, 0, sec); saveLayout();
     }
     if (sec) return sec.no;
@@ -574,6 +653,7 @@ async function analyse(file, sec){
   } finally { if (doc) doc.destroy(); }
   try { await PDFDocument.load(bytes, {ignoreEncryption:true, updateMetadata:false}).then(d => { it.encrypted = d.isEncrypted; }); }
   catch(e){ if (!it.errors.length) it.errors.push("pdf-lib kan ikke åbne filen"); }
+  it.orig = {title: it.title, subs: JSON.parse(JSON.stringify(it.subs))};   // til "Nulstil" i bogmærker
   return it;
 }
 async function materialSubs(it, doc){
@@ -610,8 +690,8 @@ async function materialSubs(it, doc){
   if (id){ it.subs.push({title:`${label} ${id}`, page: idPage || annPage || 1, depth:1}); it.hl = variants; it.matId = id; }
   it.subs.push(...charpy);
 }
-function certsFromOverview(){
-  const mats = (byRule(5)||{items:[]}).items;
+function certsFromOverview(list){
+  const mats = list || (byRule(5)||{items:[]}).items;
   const overviews = mats.filter(i => i.overview);
   if (!overviews.length) return;
   const norm = x => x.replace(/[^a-z0-9]/gi,"").toLowerCase();
@@ -641,7 +721,7 @@ function autoMeta(){
   const txt = allItems().map(i=>i.text1).join("\n");
   const grab = re => { const m = txt.match(re); return m ? m[1].replace(/\s+/g," ").trim() : ""; };
   metaAuto.project = grab(/Project Name\s*\n+\s*([^\n]{3,80})/i);
-  metaAuto.package = grab(/Package\s*\n+\s*([^\n]{3,80})/i).replace(/Seafasting/i,"Seafastening");
+  metaAuto.package = grab(/Package\s*\n+\s*([^\n]{3,80})/i);
   metaAuto.client = /\bRWE\b/.test(txt) ? "RWE" : (grab(/(?:Client|Employer|Customer)\s*[:\n]\s*([^\n]{2,40})/i));
   for (const k of ["name","scope","project","package","client"]) if (!metaTouched[k] && metaAuto[k]) meta[k] = metaAuto[k];
   fillMeta();
@@ -827,9 +907,190 @@ document.addEventListener("drop", async e => {
   let files = [];
   if (items.length) for (const en of items) files.push(...await readEntries(en));
   else files = [...e.dataTransfer.files].map(f=>({file:f, path:f.name}));
-  const forced = secBody && +secBody.dataset.body > 0 && !files.some(f => f.path.includes("/")) ? +secBody.dataset.body : null;
+  let forced = null;
+  if (secBody && +secBody.dataset.body > 0){
+    const target = +secBody.dataset.body;
+    // peger de medbragte mapper på flere forskellige sektioner? så er det hele strukturen, ikke én mappe
+    const hits = new Set(files.filter(f => f.path.includes("/"))
+                              .map(f => detectSection(f.path, f.file.name, true))
+                              .filter(n => n !== 0));
+    if (hits.size >= 2) note(`Mappen dækker flere sektioner – filerne er fordelt efter mappenavnene i stedet for at ryge i "${secOf(target).name}".`);
+    else { forced = target; if (files.some(f => f.path.includes("/"))) note(`Hele mappen er lagt i "${secOf(target).name}".`); }
+  }
   addFiles(files, forced);
 });
+/* ============ Bogmærkeoversigt ============ */
+function bmPageLabel(plan, n){                 // n = fysisk side, 1-baseret
+  if (plan.coverPages && n <= plan.coverPages) return "cover sheet";
+  if (n === plan.coverPages + 1) return "forside";
+  return "side " + (n + plan.offset);
+}
+function bmRows(){
+  const plan = buildPlan();
+  const rows = [{lvl:1, text:docName(), page:plan.coverPages + 1, kind:"doc"}];
+  rows.push({lvl:2, text:"Document Index", page:plan.coverPages + 2, kind:"fixed"});
+  for (const s of plan.secs){
+    if (!s.start) continue;
+    rows.push({lvl:3, text:s.title, page:s.start, kind:"sec", no:s.no});
+    s.items.forEach((it, ii) => {
+      const nested = !!(it.nest && ii > 0);
+      const il = 4 + (nested ? 1 : 0);
+      rows.push({lvl:il, text:(it.title || it.fileName).trim(), page:it._start, kind:"item", id:it.id,
+                 sub:it.fileName, nested, first: ii === 0, pageInFile:1});
+      it.subs.forEach((sb, k) => {
+        if (!sb.title.trim()) return;
+        const pf = Math.min(Math.max(1, sb.page), it.pages);
+        rows.push({lvl:il + sb.depth, text:sb.title.trim(), page: it._start + pf - 1, kind:"sub", id:it.id, k,
+                   depth:sb.depth, maxDepth: k === 0 ? 1 : Math.min(4, (it.subs[k-1].depth || 1) + 1), pageInFile:pf});
+      });
+    });
+  }
+  return {plan, rows};
+}
+let bmSel = -1, bmDoc = null, bmDocId = null, bmTok = 0;
+function renderBm(){
+  const {plan, rows} = bmRows();
+  const q = ($("bmFind").value || "").trim().toLowerCase();
+  const nSub = rows.filter(r => r.kind === "sub").length;
+  $("bmSub").textContent = `${rows.length} bogmærker (${nSub} underbogmærker) · ${plan.total + plan.offset} sider`;
+  $("bmList").innerHTML = rows.map((r, i) => {
+    const hit = !q || r.text.toLowerCase().includes(q) || (r.sub || "").toLowerCase().includes(q);
+    const ro = r.kind === "fixed" ? " readonly" : "";
+    let lv = `<span class="lv none"><button>←</button><button>→</button></span>`;
+    if (r.kind === "item") lv = `<span class="lv"><button data-lv="${i}" data-d="-1" ${r.nested ? "" : "disabled"} title="Gør til dokument igen">←</button><button data-lv="${i}" data-d="1" ${(!r.nested && !r.first) ? "" : "disabled"} title="Læg under dokumentet ovenover">→</button></span>`;
+    if (r.kind === "sub")  lv = `<span class="lv"><button data-lv="${i}" data-d="-1" ${r.depth > 1 ? "" : "disabled"} title="Ét niveau op">←</button><button data-lv="${i}" data-d="1" ${r.depth < r.maxDepth ? "" : "disabled"} title="Ét niveau ned">→</button></span>`;
+    let pg;
+    if (r.kind === "sub")       pg = `<span class="bpw">side <input class="bpn" type="number" data-pn="${i}" value="${r.page + plan.offset}" title="Sidetal i den færdige MRB"></span>`;
+    else if (r.kind === "item") pg = `<button class="bpb" data-pv="${i}" title="Vis siden">${bmPageLabel(plan, r.page)}</button>`;
+    else                        pg = `<span class="bp">${bmPageLabel(plan, r.page)}</span>`;
+    return `<div class="bmrow l${Math.min(r.lvl,3)}${hit ? "" : " hide"}${i === bmSel ? " sel" : ""}" data-row="${i}">
+      <span style="width:${(r.lvl-1)*18}px;flex:0 0 auto"></span>${lv}
+      <input class="bt" data-bm="${i}" value="${esc(r.text)}"${ro} title="${esc(r.sub || r.text)}">${pg}</div>`;
+  }).join("");
+  const L = $("bmList");
+  L.querySelectorAll("[data-bm]").forEach(inp => inp.addEventListener("input", e => {
+    const r = rows[+e.target.dataset.bm], v = e.target.value;
+    if (r.kind === "doc"){ meta.docName = v; metaTouched.docName = true; fillMeta(); }
+    else if (r.kind === "sec"){ secOf(r.no).name = v.replace(/^\d{1,2}\.\s*/, ""); saveLayout(); }
+    else if (r.kind === "item"){ const it = findItem(r.id).item; it.title = v; it.suggestDone = true; }
+    else if (r.kind === "sub"){ const it = findItem(r.id).item; if (it.subs[r.k]) it.subs[r.k].title = v; }
+    saveSoon(); scheduleCover();
+  }));
+  L.querySelectorAll("[data-lv]").forEach(b => b.addEventListener("click", e => {
+    const i = +e.currentTarget.dataset.lv, d = +e.currentTarget.dataset.d, r = rows[i];
+    const it = findItem(r.id).item;
+    if (r.kind === "item") it.nest = d > 0;
+    else if (r.kind === "sub"){
+      const sb = it.subs[r.k], nd = Math.max(1, Math.min(r.maxDepth, sb.depth + d));
+      const diff = nd - sb.depth; sb.depth = nd;
+      // børn under et underbogmærke flytter med
+      for (let j = r.k + 1; j < it.subs.length && it.subs[j].depth > sb.depth - diff; j++)
+        it.subs[j].depth = Math.max(1, it.subs[j].depth + diff);
+    }
+    bmSel = i; saveSoon(); renderBm();
+  }));
+  L.querySelectorAll("[data-pv]").forEach(b => b.addEventListener("click", e => {
+    bmSel = +e.currentTarget.dataset.pv; markSel(); bmPreview(rows[bmSel], plan);
+  }));
+  L.querySelectorAll("[data-pn]").forEach(inp => {
+    inp.addEventListener("focus", e => { bmSel = +e.target.dataset.pn; markSel(); bmPreview(rows[bmSel], plan); });
+    inp.addEventListener("change", e => {
+      const i = +e.target.dataset.pn, r = rows[i], it = findItem(r.id).item, sb = it.subs[r.k];
+      const phys = (+e.target.value || 0) - plan.offset;
+      const pf = Math.min(Math.max(1, phys - it._start + 1), it.pages);
+      sb.page = pf; bmSel = i; saveSoon();
+      const again = bmRows();
+      renderBm(); bmPreview(again.rows[i], again.plan);
+      if (phys - it._start + 1 !== pf) note(`"${sb.title}" kan kun pege på side ${it._start + plan.offset}–${it._start + it.pages - 1 + plan.offset} (filens egne sider).`);
+    });
+  });
+}
+function markSel(){ document.querySelectorAll("#bmList .bmrow").forEach(x => x.classList.toggle("sel", +x.dataset.row === bmSel)); }
+async function bmPreview(r, plan){
+  const box = $("bmPv");
+  if (!r || (r.kind !== "item" && r.kind !== "sub")) return;
+  const it = findItem(r.id).item;
+  if (!it || !it.bytes){ box.innerHTML = `<div class="bmpvempty">Filen er ikke indlæst i browseren.</div>`; return; }
+  const tok = ++bmTok;
+  try {
+    if (bmDocId !== it.id){
+      if (bmDoc){ bmDoc.destroy(); bmDoc = null; }
+      bmDoc = await pdfjsLib.getDocument({data: it.bytes.slice(), isEvalSupported:false}).promise; bmDocId = it.id;
+    }
+    if (tok !== bmTok) return;
+    const p = r.pageInFile, pg = await bmDoc.getPage(p);
+    const rot = (((pg.rotate || 0) + pageRot(it, p - 1)) % 360 + 360) % 360;
+    const v1 = pg.getViewport({scale:1, rotation:rot});
+    const sc = Math.min(390 / v1.width, 540 / v1.height);
+    const dpr = window.devicePixelRatio || 1;
+    const vp = pg.getViewport({scale: sc * dpr, rotation:rot});
+    const cv = document.createElement("canvas");
+    cv.width = Math.ceil(vp.width); cv.height = Math.ceil(vp.height);
+    cv.style.width = Math.round(vp.width / dpr) + "px"; cv.style.height = Math.round(vp.height / dpr) + "px";
+    await pg.render({canvasContext: cv.getContext("2d"), viewport: vp}).promise;
+    if (tok !== bmTok) return;
+    box.innerHTML = "";
+    box.appendChild(cv);
+    const cap = document.createElement("div"); cap.className = "bmpvcap";
+    cap.innerHTML = `<b>${esc(r.text)}</b><br>${esc(it.title || it.fileName)} · side ${p} af ${it.pages} i filen<br>${bmPageLabel(plan, r.page)} i MRB'en`;
+    box.appendChild(cap);
+  } catch(e){ box.innerHTML = `<div class="bmpvempty">Kunne ikke vise siden.</div>`; }
+}
+function bmClose(){
+  $("bm").classList.remove("show");
+  if (bmDoc){ bmDoc.destroy(); bmDoc = null; bmDocId = null; }
+  bmSel = -1; render();
+}
+function effectiveOriginals(){
+  // originalen fra filen + de certifikatnumre der hentes fra materialeoversigten
+  const clone = x => JSON.parse(JSON.stringify(x));
+  const map = new Map();
+  const mats = (byRule(5)||{items:[]}).items;
+  const pseudo = mats.map(it => ({matId: it.matId, overview: it.overview, title: it.title, subs: it.orig ? clone(it.orig.subs) : []}));
+  certsFromOverview(pseudo);
+  mats.forEach((it, i) => map.set(it.id, pseudo[i].subs));
+  for (const it of allItems()) if (!map.has(it.id) && it.orig) map.set(it.id, clone(it.orig.subs));
+  return map;
+}
+const subSig = subs => JSON.stringify((subs||[]).map(s => [s.title, s.page, s.depth]));
+$("bmReset").onclick = async () => {
+  const items = allItems(), eff = effectiveOriginals();
+  const changed = items.filter(it => it.nest || !it.orig || it.title !== it.orig.title ||
+                                     subSig(it.subs) !== subSig(eff.get(it.id))).length;
+  if (!changed){ note("Bogmærkerne står allerede som de blev læst ud af filerne."); return; }
+  if (!confirm(`Sæt dokumentnavne og underbogmærker tilbage til det der blev læst ud af filerne?\n\n` +
+               `Det gælder navne, niveauer, sidetal og slettede/tilføjede underbogmærker i ${changed} dokument(er).\n` +
+               `Sektionsnavne, dokumentnavnet og rotationer ændres ikke.`)) return;
+  busy(true, "Nulstiller bogmærker…", 0);
+  let n = 0;
+  try {
+    for (const it of items){
+      n++;
+      if (it.orig){
+        it.title = it.orig.title;
+        it.subs = JSON.parse(JSON.stringify(it.orig.subs));
+      } else if (it.bytes){                       // ældre session uden gemt original: læs filen igen
+        busy(true, `Læser ${it.fileName} igen…`, n / items.length);
+        const f = findItem(it.id);
+        const fresh = await analyse(new File([it.bytes], it.fileName, {type:"application/pdf"}), f ? f.sec : state.unsorted);
+        it.title = fresh.title; it.subs = fresh.subs; it.orig = fresh.orig;
+        it.suggest = fresh.suggest; it.checks = fresh.checks;
+      }
+      it.nest = false; it.suggestDone = false;
+    }
+    certsFromOverview();
+  } finally { busy(false); }
+  saveSoon(); render(); bmSel = -1;
+  $("bmPv").innerHTML = `<div class="bmpvempty">Klik på et sidetal for at se siden her.</div>`;
+  renderBm();
+  note(`Bogmærkerne i ${changed} dokument(er) er sat tilbage til det der stod i filerne.`);
+};
+$("btnBm").onclick = () => { $("bmFind").value = ""; bmSel = -1;
+  $("bmPv").innerHTML = `<div class="bmpvempty">Klik på et sidetal for at se siden her.</div>`;
+  renderBm(); $("bm").classList.add("show"); };
+$("bmFind").addEventListener("input", renderBm);
+$("bmClose").onclick = $("bmDone").onclick = bmClose;
+
 $("btnOpenAll").onclick = () => { [...state.sections, state.unsorted].forEach(s=>s.open=true); render(); };
 $("btnCloseAll").onclick = () => { [...state.sections, state.unsorted].forEach(s=>s.open=false); render(); };
 $("btnSuggest").onclick = () => { for (const s of state.sections) s.items.sort((a,b)=>cmpKey(sortKey(s.rule,a), sortKey(s.rule,b))); render(); };
@@ -841,16 +1102,20 @@ $("btnReset").onclick = async () => {
 };
 
 function syncOpts(){
-  for (const [id,k] of [["opt_dividers","dividers"],["opt_empty","dividersEmpty"],["opt_a4","a4"],["opt_turn","turn"],["opt_cover","cover"],["opt_coverPages","coverPages"],["opt_start2","start2"]]) $(id).checked = opts[k];
+  for (const [id,k] of [["opt_dividers","dividers"],["opt_empty","dividersEmpty"],["opt_a4","a4"],["opt_turn","turn"],["opt_cover","cover"],["opt_coverPages","coverPages"],["opt_coverCounts","coverCounts"],["opt_start2","start2"]]) $(id).checked = opts[k];
+  renderCoverFields();
   $("opt_start2").parentElement.classList.toggle("disabled", !!(opts.cover && coverSheet));
   $("optEmptyWrap").classList.toggle("disabled", !opts.dividers);
   $("optTurnWrap").classList.toggle("disabled", !opts.a4);
   $("coverBox").classList.toggle("disabled", !opts.cover);
-  $("coverName").textContent = coverSheet ? `${coverSheet.name} · ${coverSheet.pages} side(r)` : "ingen fil valgt";
+  $("coverName").textContent = coverSheet ? `Gemt skabelon · ${coverSheet.pages} side(r)` : "ingen fil valgt";
+  $("btnCover").style.display = coverSheet ? "none" : "";
+  $("coverSwap").style.display = coverSheet ? "" : "none";
 }
-for (const [id,k] of [["opt_dividers","dividers"],["opt_empty","dividersEmpty"],["opt_a4","a4"],["opt_turn","turn"],["opt_cover","cover"],["opt_coverPages","coverPages"],["opt_start2","start2"]])
+for (const [id,k] of [["opt_dividers","dividers"],["opt_empty","dividersEmpty"],["opt_a4","a4"],["opt_turn","turn"],["opt_cover","cover"],["opt_coverPages","coverPages"],["opt_coverCounts","coverCounts"],["opt_start2","start2"]])
   $(id).addEventListener("change", e => { opts[k] = e.target.checked; saveOpts(); });
 $("btnCover").onclick = () => { $("inCover").value=""; $("inCover").click(); };
+$("coverSwap").onclick = e => { e.preventDefault(); $("inCover").value=""; $("inCover").click(); };
 $("inCover").onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
   try {
@@ -869,9 +1134,12 @@ $("inCover").onchange = async e => {
         ? {page:p-1, x: val.transform[4], y: val.transform[5], h: Math.abs(val.transform[3]) || 9, w: (val.width || 18) + 4, clear:true}
         : {page:p-1, x: lx + 10, y: ly, h: Math.abs(lbl.transform[3]) || 9, w: 0, clear:false};
     }
-    coverSheet = {name:f.name, bytes, pages:doc.numPages, box};
+    const fields = await scanCoverFields(doc);
+    const rev = await scanRevTable(doc).catch(()=>null);
+    coverSheet = {name:f.name, bytes, pages:doc.numPages, box, fields, rev};
     doc.destroy();
-    await idbPut("files", "__coversheet__", {name:f.name, bytes, pages:coverSheet.pages, box}).catch(()=>{});
+    await saveCover();
+    renderCoverFields();
     opts.cover = true; saveOpts(); note(box ? `Cover sheet tilføjet – feltet "Pages (Inc. Cover)" blev fundet og udfyldes automatisk.` : `Cover sheet tilføjet – feltet "Pages (Inc. Cover)" blev ikke fundet, så sideantallet skal skrives i Word.`);
   } catch(err){ note("Kunne ikke læse cover sheet: " + (err && err.message || err)); }
 };
@@ -889,7 +1157,36 @@ for (const k of META_KEYS) $("m_"+k).addEventListener("input", e => {
 });
 const pqaCore = () => meta.name.replace(/^PQA\s*-?\s*/i,"").trim();
 const docName = () => (meta.docName || "").trim() || (pqaCore() ? `VG-NIC-${pqaCore()} MRB` : "MRB");
-const outFileName = () => `${docName()}.pdf`.replace(/[\\/:*?"<>|]/g,"-");
+const safeFile = n => String(n).replace(/[\\/:*?"<>|]/g,"-").replace(/\s+/g," ").trim();
+// Dokumentet hedder det samme som cover sheet'et: filnavn = ecodoc-nummeret
+function ecodocBase(){
+  if (!(opts.cover && coverSheet)) return "";
+  const fn = (coverSheet.name || "").replace(/\.pdf$/i, "").trim();
+  const fromFields = ecodocFromFields();
+  if (fromFields) return fromFields;
+  return /\d{6,}/.test(fn) ? fn : "";
+}
+function ecodocFromFields(){
+  const get = l => { const f = (coverSheet.fields||[]).find(x => x.label === l); return f ? (f.newValue != null ? f.newValue : f.value) : ""; };
+  const no = (get("Employer Doc No.") || get("Contractor Doc No.") || "").trim();
+  if (!no) return "";
+  const rev = (get("Employer Revision") || get("Contractor Revision") || "").trim();
+  const d = (get("Document Date") || "").trim();
+  const md = d.match(/(\d{1,2})[\s.\-\/]*([A-Za-zæøå]+|\d{1,2})[\s.\-\/]*(\d{4})/);
+  const MN = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+  let ds = "";
+  if (md){
+    const mi = /^\d+$/.test(md[2]) ? +md[2] : MN.findIndex(m => md[2].toLowerCase().startsWith(m)) + 1;
+    if (mi > 0) ds = `${String(+md[1]).padStart(2,"0")}-${String(mi).padStart(2,"0")}-${md[3]}`;
+  }
+  return [no + (rev && /^\d+$/.test(rev) ? "-" + rev : ""), ds].filter(Boolean).join("_");
+}
+// kind: "" = med cover, "uden" = uden cover, "sheet" = kun cover sheet
+const outFileName = (kind) => {
+  const suf = kind === true || kind === "uden" ? " uden forside" : kind === "sheet" ? " cover sheet" : "";
+  const eco = ecodocBase();
+  return safeFile(((opts.cover && coverSheet && eco) ? eco : docName()) + suf) + ".pdf";
+};
 
 function busy(on, msg, frac){
   $("busy").classList.toggle("show", on);
@@ -933,7 +1230,7 @@ function wrap(F, f, t, size, maxw){
   if (cur) lines.push(cur); return lines;
 }
 
-function buildPlan(){
+function buildPlan(noCover){
   const secs = state.sections.map((s,i) => ({no:i+1, name:s.name.trim(), title:`${i+1}. ${s.name.trim()}`, items:s.items}));
   const rows = [];
   for (const s of secs){ rows.push({lvl:1, s}); for (const it of s.items) rows.push({lvl:2, s, it}); }
@@ -947,7 +1244,7 @@ function buildPlan(){
     cur.push(r);
   }
   const nIndex = chunks.length;
-  const coverPages = (opts.cover && coverSheet) ? coverSheet.pages : 0;
+  const coverPages = (opts.cover && coverSheet && !noCover) ? coverSheet.pages : 0;
   let pg = coverPages + 1 + nIndex + 1; // 1-based
   for (const s of secs){
     s.divider = opts.dividers && (s.items.length > 0 || opts.dividersEmpty);
@@ -955,7 +1252,9 @@ function buildPlan(){
     if (s.divider) pg += 1;
     for (const it of s.items){ it._start = pg; pg += it.pages; }
   }
-  const offset = (!coverPages && opts.start2) ? 1 : 0;
+  const offset = coverPages ? (opts.coverCounts ? 0 : -coverPages)
+              : (opts.cover && coverSheet && noCover) ? (opts.coverCounts ? coverSheet.pages : 0)
+              : (opts.start2 ? 1 : 0);
   return { secs, rows, chunks, nIndex, ROWS, coverPages, offset, total: pg - 1 };
 }
 
@@ -1181,23 +1480,81 @@ async function findHighlightRects(it){
   return out;
 }
 
-async function buildPdf({coverOnly=false}={}){
-  const plan = buildPlan();
+async function buildPdf({coverOnly=false, noCover=false, sheetOnly=false}={}){
+  const plan = buildPlan(sheetOnly ? false : noCover);
   const out = await PDFDocument.create();
   const F = await setupFonts(out);
   const logo = await out.embedPng(Uint8Array.from(atob(LOGO_B64), c=>c.charCodeAt(0)));
-  const cs = (opts.cover && coverSheet) ? coverSheet : null;
+  const cs = (opts.cover && coverSheet && (sheetOnly || !noCover)) ? coverSheet : null;
   const csPages = [];
   if (cs){
     const csDoc = await PDFDocument.load(cs.bytes, {ignoreEncryption:true, updateMetadata:false});
     const cp = await out.copyPages(csDoc, csDoc.getPageIndices());
     cp.forEach(p => { out.addPage(p); csPages.push(p); });
+    // udfyld felter – samme værdi rettes alle steder den står
+    if (cs.fields && cs.fields.length){
+      const changed = cs.fields.filter(f => (f.newValue != null) && f.newValue !== f.value && f.value);
+      if (changed.length){
+        const jsDoc = await pdfjsLib.getDocument({data: cs.bytes.slice(), isEvalSupported:false}).promise;
+        const white = (pg, r, sz) => pg.drawRectangle({x: r.x - 1.5, y: r.y - sz*0.30, width: Math.max(r.w, 12) + 6, height: sz*1.34, color: rgb(1,1,1)});
+        const put = (pg, r, txt, sz) => pg.drawText(safe(F, txt), {x: r.x, y: r.y, size: sz, font: F.r, color: rgb(0.16,0.22,0.44)});
+        const done = [];
+        // 1) selve feltet på cover sheet'et (værdien kan stå over to linjer)
+        for (const f of changed){
+          const parts = (f.parts && f.parts.length) ? f.parts : [{page: f.page||0, x: f.x, y: f.y, w: f.w, h: f.h}];
+          const pg = csPages[parts[0].page]; if (!pg) continue;
+          let sz = Math.min(11, Math.max(7.5, parts[0].h || 9));
+          const room = f.avail || 200;
+          while (sz > 5.5 && F.s.widthOfTextAtSize(safe(F, f.newValue), sz) > room) sz -= 0.25;
+          parts.forEach(r => { if (csPages[r.page]) white(csPages[r.page], r, Math.min(11, Math.max(7.5, r.h || 9))); done.push(r.page + ":" + Math.round(r.x) + ":" + Math.round(r.y)); });
+          put(pg, parts[0], f.newValue, sz);
+        }
+        // 2) de samme værdier alle andre steder i cover sheet'et
+        //    (kun værdier der er lange nok til at være entydige, og aldrig i RWE Revision History)
+        const RB = (cs.rev && cs.rev.rows) || [];
+        const inRev = (pi, y) => cs.rev && cs.rev.page === pi && RB.some(r => y > r.bot - 1 && y <= r.top + 1);
+        for (let p = 0; p < Math.min(jsDoc.numPages, csPages.length); p++){
+          for (const c of await coverCells(jsDoc, p + 1)){
+            const t = c.s.replace(/\s+/g, " ");
+            const f = changed.find(x => x.value === t && x.value.length >= 4); if (!f) continue;
+            if (done.includes(p + ":" + Math.round(c.x) + ":" + Math.round(c.y))) continue;
+            if (inRev(p, c.y)) continue;
+            const pg = csPages[p], sz = Math.min(11, Math.max(7.5, c.h || 9));
+            white(pg, c, sz); put(pg, c, f.newValue, sz);
+          }
+        }
+        jsDoc.destroy();
+      }
+    }
+    // RWE Revision History – tilføjede / rettede linjer
+    if (cs.rev && csPages[cs.rev.page]){
+      const R = cs.rev, pg = csPages[R.page];
+      for (const r of R.rows){
+        const h = Math.abs(r.top - r.bot), sz = Math.min(9, Math.max(6, h * 0.46)), base = r.bot + h * 0.34;
+        r.cells.forEach((c, k) => {
+          const was = (r.orig && r.orig[k]) || "", now = (c || "").trim();
+          if (now === was.trim()) return;
+          const col = R.cols[k]; if (!col) return;
+          pg.drawRectangle({x: col[0] + 1.5, y: r.bot + 1.2, width: (col[1] - col[0]) - 3, height: h - 2.4, color: rgb(1,1,1)});
+          if (!now) return;
+          let fs = sz;
+          while (fs > 4.5 && F.r.widthOfTextAtSize(safe(F, now), fs) > (col[1] - col[0]) - 6) fs -= 0.25;
+          const w = F.r.widthOfTextAtSize(safe(F, now), fs);
+          pg.drawText(safe(F, now), {x: (col[0] + col[1]) / 2 - w / 2, y: base, size: fs, font: F.r, color: rgb(0.16,0.22,0.44)});
+        });
+      }
+    }
     if (cs.box && opts.coverPages && csPages[cs.box.page]){
       const p = csPages[cs.box.page], sz = Math.min(11, Math.max(8, cs.box.h || 9));
       if (cs.box.clear) p.drawRectangle({x: cs.box.x - 2, y: cs.box.y - sz * 0.28, width: Math.max(cs.box.w, 20), height: sz * 1.25, color: rgb(1,1,1)});
       p.drawText(String(plan.total), {x: cs.box.x, y: cs.box.y, size: sz, font: F.s, color: rgb(0.16,0.22,0.44)});
     }
     if (opts.a4) csPages.forEach(toA4);
+  }
+  if (sheetOnly){
+    out.setTitle(docName() + " – cover sheet"); out.setAuthor("Nicon Industries A/S");
+    out.setCreator("PQA Builder"); out.setProducer("PQA Builder");
+    return out;
   }
   const cover = out.addPage(A4);
   const coverLinks = drawCover(cover, F, logo, plan);
@@ -1239,12 +1596,259 @@ async function buildPdf({coverOnly=false}={}){
     {title:docName(), page:0, open:true, children:[
     {title:"Document Index", page:1, open:false, children: plan.secs.filter(s=>s.start).map(s => ({
       title:s.title, page:s.start-1, open:false,
-      children: s.items.map(it => ({title:(it.title||it.fileName).trim(), page:it._start-1, open:false, children: subTree(it, it._start-1)}))
+      children: (() => { const out = []; let last = null;
+        for (const it of s.items){
+          const node = {title:(it.title||it.fileName).trim(), page:it._start-1, open:false, children: subTree(it, it._start-1)};
+          if (it.nest && last) last.children.push(node); else { out.push(node); last = node; }
+        }
+        return out; })()
     }))}]}
   ];
   addOutline(out, tree);
   out.setTitle(docName()); out.setAuthor("Nicon Industries A/S"); out.setCreator("PQA Builder"); out.setProducer("PQA Builder");
   return out;
+}
+
+/* ============ RWE cover sheet: felter ============ */
+const COVER_LABELS = ["Project Name","Package","Document Title","Classification","Contractor Doc No.","Contractor Revision",
+  "Document Date","Employer Doc No.","Employer Revision","Document Status","Reason for Issue"];
+async function scanCoverFields(doc){
+  const found = [];
+  for (let p = 1; p <= Math.min(doc.numPages, 3); p++){
+    const cells = await coverCells(doc, p);
+    const pw = (await doc.getPage(p)).getViewport({scale:1}).width;
+    for (const lab of COVER_LABELS){
+      if (found.some(f => f.label === lab)) continue;
+      const target = normLab(lab);
+      let labCells = null;
+      for (let i = 0; i < cells.length && !labCells; i++){
+        let txt = normLab(cells[i].s);
+        if (txt === target){ labCells = [cells[i]]; break; }
+        if (!target.startsWith(txt + " ")) continue;
+        const set = [cells[i]];
+        for (let j = i + 1; j < cells.length && j <= i + 12; j++){
+          if (Math.abs(cells[j].x - cells[i].x) > 16) continue;
+          if (cells[j].line <= cells[i].line) continue;
+          txt = normLab(txt + " " + cells[j].s); set.push(cells[j]);
+          if (txt === target){ labCells = set.slice(); break; }
+          if (!target.startsWith(txt + " ")) break;
+        }
+      }
+      if (!labCells) continue;
+      const lx = Math.max(...labCells.map(c => c.x + c.w));
+      const ys = labCells.map(c => c.y);
+      const yTop = Math.max(...ys) + 9, yBot = Math.min(...ys) - 9;
+      const right = cells.filter(c => !labCells.includes(c) && c.x > lx + 2 && c.y <= yTop && c.y >= yBot)
+                         .sort((a,b) => a.x - b.x || b.y - a.y);
+      if (!right.length) continue;
+      // værdien kan være brudt over to linjer i samme kolonne
+      const col = right.filter(c => Math.abs(c.x - right[0].x) < 18).sort((a,b) => b.y - a.y);
+      let value = "";
+      col.forEach((c, k) => { value += (k && !/[-\/]$/.test(value) ? " " : "") + c.s; });
+      value = value.replace(/\s+/g, " ").trim();
+      if (!value) continue;
+      const nxt = cells.filter(c => Math.abs(c.y - col[0].y) < 6 && c.x > col[0].x + col[0].w + 2)
+                       .sort((a,b) => a.x - b.x)[0];
+      const avail = Math.max(30, (nxt ? nxt.x - 6 : pw - 24) - col[0].x);
+      found.push({label: lab, value, newValue: value, page: p - 1, avail,
+                  parts: col.map(c => ({page: p - 1, x: c.x, y: c.y, w: c.w, h: c.h})),
+                  x: col[0].x, y: col[0].y, w: col[0].w, h: col[0].h});
+    }
+  }
+  for (const f of found) f.count = await countText(doc, f.value);
+  return found;
+}
+const normLab = s => s.replace(/\s+/g, " ").trim().toLowerCase().replace(/\.$/, "");
+
+/* ---- RWE Revision History: find tabellens linjer og kolonner ---- */
+async function scanRevTable(doc){
+  for (let p = 1; p <= Math.min(doc.numPages, 3); p++){
+    const cells = await coverCells(doc, p);
+    const head = cells.find(c => /revision\s*history/i.test(c.s));
+    if (!head) continue;
+    const rtc = await (await doc.getPage(p)).getTextContent();
+    const raw = rtc.items.filter(i => (i.str||"").trim()).map(i => ({
+      s: i.str.trim(), x: i.transform[4], y: i.transform[5], w: i.width || 0 }));
+    const pg = await doc.getPage(p), S = 2, vp = pg.getViewport({scale:S});
+    const cv = document.createElement("canvas");
+    cv.width = Math.ceil(vp.width); cv.height = Math.ceil(vp.height);
+    const cx = cv.getContext("2d", {willReadFrequently:true});
+    cx.fillStyle = "#fff"; cx.fillRect(0,0,cv.width,cv.height);
+    await pg.render({canvasContext: cx, viewport: vp}).promise;
+    const H = pg.getViewport({scale:1}).height;
+    const y0 = Math.round((H - head.y + 4) * S);          // lige under overskriften
+    const img = cx.getImageData(0, y0, cv.width, cv.height - y0).data;
+    const W = cv.width, dark = [];
+    for (let r = 0; r < cv.height - y0; r++){
+      let n = 0;
+      for (let x = 0; x < W; x++){ const i = (r*W + x)*4;
+        if (img[i]*0.3 + img[i+1]*0.59 + img[i+2]*0.11 < 170 && img[i+3] > 40) n++; }
+      dark.push(n);
+    }
+    const lim = W * 0.45;
+    const rules = [];
+    for (let r = 0; r < dark.length; r++){
+      if (dark[r] < lim) continue;
+      let e = r; while (e + 1 < dark.length && dark[e+1] >= lim) e++;
+      rules.push((r + e) / 2); r = e + 1;
+    }
+    if (rules.length < 3) { continue; }
+    // kolonner: mørke strækninger på den første streg
+    const rr = Math.round(rules[0]) + y0, row = cx.getImageData(0, rr, W, 1).data;
+    const cols = []; let run = null;
+    for (let x = 0; x < W; x++){ const i = x*4;
+      const d = row[i]*0.3 + row[i+1]*0.59 + row[i+2]*0.11 < 170 && row[i+3] > 40;
+      if (d){ if (!run) run = [x,x]; else run[1] = x; }
+      else if (run){ if (run[1]-run[0] > 20) cols.push([run[0]/S, run[1]/S]); run = null; }
+    }
+    if (run && run[1]-run[0] > 20) cols.push([run[0]/S, run[1]/S]);
+    if (cols.length < 3) continue;
+    // linjebånd i PDF-koordinater (y nedefra)
+    const ys = rules.map(r => H - (r + y0)/S);            // faldende
+    const bands = [];
+    for (let i = 0; i < ys.length - 1; i++) bands.push({top: ys[i], bot: ys[i+1]});
+    // indhold pr. bånd
+    const txt = (b, c) => {
+      const inCell = raw.filter(x => x.y > b.bot && x.y <= b.top && x.x > c[0] - 4 && x.x < c[1] - 1)
+                          .sort((a,z) => z.y - a.y || a.x - z.x);
+      let out = "";
+      for (const x of inCell){
+        const t = x.s.trim(); if (!t) continue;
+        if (out && /[a-zæøå]$/.test(out) && /^[a-zæøå]{1,2}$/.test(t)) out += t;   // ombrudt ord
+        else out += (out ? " " : "") + t;
+      }
+      return out.replace(/\s+/g," ").trim();
+    };
+    const rows = bands.map((b, i) => ({i, top:b.top, bot:b.bot, cells: cols.map(c => txt(b, c))}));
+    const headI = rows.findIndex(r => r.cells.some(c => /author|checker|approver|reason for issue/i.test(c)));
+    const hi = headI >= 0 ? headI : rows.length - 1;
+    const heads = rows[hi].cells.map(c => c.replace(/\bRWE\b/gi,"").replace(/\s+/g," ").trim());
+    const data = rows.slice(0, hi).reverse();             // nyeste først (nederste bånd)
+    return {page: p - 1, cols, heads, rows: data.map(r => ({top:r.top, bot:r.bot, cells:r.cells.slice(), orig:r.cells.slice()}))};
+  }
+  return null;
+}
+const revNext = v => { const m = String(v||"").match(/(\d+)\s*$/); if (!m) return ""; 
+  const n = String(+m[1] + 1); return m[1].length > n.length ? "0".repeat(m[1].length - n.length) + n : n; };
+
+async function coverCells(doc, p){
+  const tc = await (await doc.getPage(p)).getTextContent();
+  const items = tc.items.filter(i => (i.str||"").trim()).map(i => ({
+    s: i.str.trim(), x: i.transform[4], y: i.transform[5],
+    w: i.width || 0, h: Math.abs(i.transform[3]) || 9 }));
+  const lines = [];
+  for (const it of items.slice().sort((a,b) => b.y - a.y || a.x - b.x)){
+    let L = lines.find(l => Math.abs(l.y - it.y) < 4);
+    if (!L){ L = {y: it.y, its: []}; lines.push(L); }
+    L.its.push(it);
+  }
+  lines.sort((a,b) => b.y - a.y);
+  const cells = [];
+  lines.forEach((l, li) => {
+    l.its.sort((a,b) => a.x - b.x);
+    let cur = null;
+    for (const it of l.its){
+      if (cur && it.x - (cur.x + cur.w) < 14){ cur.s += " " + it.s; cur.w = it.x + it.w - cur.x; }
+      else { cur = {s: it.s, x: it.x, y: it.y, w: it.w, h: it.h, line: li}; cells.push(cur); }
+    }
+  });
+  return cells;
+}
+async function countText(doc, text){
+  if (!text || text.length < 3) return 1;
+  let n = 0;
+  for (let p = 1; p <= Math.min(doc.numPages, 5); p++){
+    for (const c of await coverCells(doc, p)) if (c.s.replace(/\s+/g," ") === text) n++;
+  }
+  return Math.max(1, n);
+}
+function saveCover(){
+  if (!coverSheet) return Promise.resolve();
+  return idbPut("files", "__coversheet__", {name:coverSheet.name, bytes:coverSheet.bytes, pages:coverSheet.pages,
+                box:coverSheet.box, fields:coverSheet.fields, rev:coverSheet.rev}).catch(()=>{});
+}
+function renderCoverFields(){
+  const box = $("coverFields"); if (!box) return;
+  if (!coverSheet || !coverSheet.fields || !coverSheet.fields.length || !opts.cover){ box.innerHTML = ""; renderRevTable(); return; }
+  box.innerHTML = coverSheet.fields.map((f, i) => `<div class="cfield">
+      <label>${esc(f.label)}${f.count > 1 ? ` <span class="cnt">· ${f.count} steder</span>` : ""}</label>
+      <input data-cf="${i}" value="${esc(f.newValue != null ? f.newValue : f.value)}">
+    </div>`).join("");
+  box.querySelectorAll("[data-cf]").forEach(inp => inp.addEventListener("input", e => {
+    const f = coverSheet.fields[+e.target.dataset.cf];
+    f.newValue = e.target.value;
+    if (/revision/i.test(f.label)) syncRevRow(f.newValue);
+    saveCover(); scheduleCover();
+  }));
+  renderRevTable();
+}
+
+/* ---- RWE Revision History: redigering ---- */
+const revRows = () => (coverSheet && coverSheet.rev && coverSheet.rev.rows) || [];
+const revFilled = r => r.cells.some(c => (c||"").trim());
+function syncRevRow(val){
+  const R = coverSheet && coverSheet.rev; if (!R || !val) return;
+  const v = String(val).trim(); if (!v) return;
+  if (R.rows.some(r => (r.cells[0]||"").trim() === v)) return;   // linjen findes
+  const prev = R.rows.find(revFilled);
+  const empty = R.rows.filter(r => !revFilled(r));
+  if (!empty.length){ note("Der er ikke flere tomme linjer i RWE Revision History."); return; }
+  const row = empty[0];                                          // nederste tomme linje
+  const g = l => { const f = (coverSheet.fields||[]).find(x => x.label === l); return f ? (f.newValue != null ? f.newValue : f.value) : ""; };
+  row.cells = R.heads.map((h, i) => {
+    if (i === 0) return v;
+    if (/date/i.test(h)){
+      const pd = prev ? (prev.cells[i]||"").trim() : "";
+      const dd = g("Document Date") || "";
+      if (/^\d{1,2}[-.\/]\d{1,2}[-.\/]\d{4}$/.test(pd)){
+        const m = dd.match(/(\d{1,2})\s+([A-Za-zæøå]+)\s+(\d{4})/);
+        const MN = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+        if (m){ const mi = MN.findIndex(x => m[2].toLowerCase().startsWith(x)) + 1;
+          if (mi > 0) return `${String(+m[1]).padStart(2,"0")}-${String(mi).padStart(2,"0")}-${m[3]}`; }
+        return /^\d/.test(dd) && dd.length <= 10 ? dd : pd;
+      }
+      return dd || pd || todayStr();
+    }
+    if (/status|reason/i.test(h)) return g("Reason for Issue") || (prev ? prev.cells[i] : "");
+    return prev ? (prev.cells[i] || "") : "";
+  });
+  note(`Revision ${v} tilføjet som ny linje i RWE Revision History – ret den hvis der skal stå noget andet.`);
+  saveCover(); renderRevTable(); scheduleCover();
+}
+function renderRevTable(){
+  const box = $("coverRev"); if (!box) return;
+  const R = coverSheet && coverSheet.rev;
+  if (!R || !opts.cover){ box.innerHTML = ""; return; }
+  const shown = R.rows.filter(r => revFilled(r));
+  const empty = R.rows.length - shown.length;
+  box.innerHTML = `<div class="revbox">
+    <div class="revhead">RWE Revision History <span class="cnt">· ${shown.length} linje(r) udfyldt, ${empty} tom(me)</span></div>
+    ${shown.slice().reverse().map(r => { const i = R.rows.indexOf(r); return `<div class="revrow">
+      <div class="revtop">
+        <span class="rl">${esc(R.heads[0] || "Revision")}</span>
+        <input class="rnum" data-rv="${i}" data-rc="0" value="${esc(r.cells[0]||"")}">
+        <button class="btn sm ghost" data-revdel="${i}" title="Ryd linjen">✕</button>
+      </div>
+      <div class="revgrid">${r.cells.slice(1).map((c,k) => `
+        <div class="rf${/status|reason/i.test(R.heads[k+1]||"") ? " wide" : ""}">
+          <span class="rl">${esc(R.heads[k+1] || "")}</span>
+          <input data-rv="${i}" data-rc="${k+1}" value="${esc(c||"")}">
+        </div>`).join("")}</div>
+    </div>`; }).join("")}
+    <button class="btn sm ghost" id="revAdd"${empty ? "" : " disabled"}>＋ Tilføj revisionslinje</button>
+  </div>`;
+  box.querySelectorAll("[data-rv]").forEach(inp => inp.addEventListener("input", e => {
+    R.rows[+e.target.dataset.rv].cells[+e.target.dataset.rc] = e.target.value; saveCover(); scheduleCover();
+  }));
+  box.querySelectorAll("[data-revdel]").forEach(b => b.addEventListener("click", e => {
+    const r = R.rows[+e.currentTarget.dataset.revdel];
+    r.cells = r.cells.map(()=>""); saveCover(); renderRevTable(); scheduleCover();
+  }));
+  const add = $("revAdd");
+  if (add) add.onclick = () => {
+    const prev = R.rows.find(revFilled);
+    syncRevRow(revNext(prev ? prev.cells[0] : "00") || "01");
+  };
 }
 
 /* ================= preview af en fil ================= */
@@ -1383,8 +1987,19 @@ function validate(){
   const cm = cosmeticIssues(meta.title + " " + meta.project + " " + meta.package + " " + meta.scope);
   if (cm.length) issues.push({lvl:"warn", msg:`Forside: ${cm.join(", ")}`, fix:{type:"meta"}});
   if (opts.cover && !coverSheet) issues.push({lvl:"warn", msg:"\"RWE cover sheet forrest\" er valgt, men der er ikke valgt en PDF."});
+  if (opts.cover && coverSheet) issues.push({lvl:"info", msg:`Der downloades 3 filer: 1) "${outFileName("uden")}" – dokumentet uden cover sheet · 2) "${outFileName("sheet")}" – kun cover sheet'et, udfyldt · 3) "${outFileName("")}" – det hele med cover sheet forrest. Sidetallene er ens i 1 og 3.`});
+  if (opts.cover && coverSheet){ const pl = buildPlan(); issues.push({lvl:"info", msg: opts.coverCounts
+      ? `Cover sheet tæller med: den samlede fil er ${pl.total} sider, og forsiden er side 1.`
+      : `Cover sheet tæller ikke med: sidetallene går fra 1 til ${pl.total + pl.offset}, og cover sheet'et står uden sidetal.`}); }
+  if (opts.cover && coverSheet && coverSheet.fields && coverSheet.fields.some(f => /^x+$/i.test((f.newValue||f.value||"").trim())))
+    issues.push({lvl:"warn", msg:"Et felt på cover sheet'et står stadig med XX – udfyld det under \"RWE cover sheet\"."});
+  if (opts.cover && coverSheet && coverSheet.fields) coverSheet.fields.forEach((f, fi) => {
+    const v = (f.newValue != null ? f.newValue : f.value) || "";
+    const cc = cosmeticIssues(v);
+    if (cc.length) issues.push({lvl:"warn", msg:`Cover sheet · ${f.label}: ${cc.join(", ")} ("${v}")`, fix:{type:"cfield", i:fi}});
+  });
   if (opts.cover && coverSheet && !coverSheet.box && opts.coverPages) issues.push({lvl:"warn", msg:"Feltet \"Pages (Inc. Cover)\" blev ikke fundet i cover sheet'et – sideantallet skal skrives manuelt."});
-  if (plan0().offset) issues.push({lvl:"info", msg:`Sidetal starter på 2 – den samlede fil regnes som ${buildPlan().total + 1} sider inkl. den forside du selv sætter på.`});
+  if (!opts.cover && plan0().offset) issues.push({lvl:"info", msg:`Sidetal starter på 2 – den samlede fil regnes som ${buildPlan().total + 1} sider inkl. den forside du selv sætter på.`});
   { const n = allItems().reduce((a,i)=>a+rotCount(i),0); if (n) issues.push({lvl:"info", msg:`${n} side(r) er drejet manuelt i preview.`}); }
   if (opts.a4) issues.push({lvl:"info", msg:"Alle sider gøres til A4 – " + (opts.turn ? "liggende sider drejes 90° til stående A4." : "hver side beholder sin egen retning (stående eller liggende A4).")});
   if (opts.dividers){ const nd = buildPlan().secs.filter(x=>x.divider).length; issues.push({lvl:"info", msg:`${nd} skillesider tilføjes${opts.dividersEmpty?" (tomme sektioner som \"Not applicable\")":""}.`}); }
@@ -1399,6 +2014,14 @@ function applyFix(fx){
   if (fx.type === "sugg"){ const i2 = findItem(fx.id).item; if (i2.suggest){ i2.title = i2.suggest; i2.suggestDone = true; } }
   if (fx.type === "sec"){ const sc = secOf(fx.no); sc.name = tidy(sc.name); saveLayout(); }
   if (fx.type === "meta"){ for (const k of ["title","project","package","scope"]) meta[k] = tidy(meta[k]); fillMeta(); }
+  if (fx.type === "cfield"){
+    const f = (coverSheet && coverSheet.fields || [])[fx.i];
+    if (f){
+      f.newValue = spellFix(f.newValue != null ? f.newValue : f.value).replace(/\s+/g," ").trim();
+      renderCoverFields(); scheduleCover();
+      idbPut("files","__coversheet__",{name:coverSheet.name, bytes:coverSheet.bytes, pages:coverSheet.pages, box:coverSheet.box, fields:coverSheet.fields}).catch(()=>{});
+    }
+  }
 }
 let currentIssues = [];
 function openCheck(){
@@ -1420,16 +2043,39 @@ $("mList").addEventListener("click", e => { const b = e.target.closest("[data-fi
 $("mFixAll").onclick = () => { currentIssues.forEach(x => { if (x.fix && x.fix.type !== "sugg") applyFix(x.fix); }); render(); openCheck(); };
 $("mBack").onclick = () => $("modal").classList.remove("show");
 $("btnDownload").onclick = openCheck;
+function saveBytes(bytes, name){
+  const url = URL.createObjectURL(new Blob([bytes], {type:"application/pdf"}));
+  const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 60000);
+}
 $("mGo").onclick = async () => {
   $("modal").classList.remove("show");
+  const withCover = !!(opts.cover && coverSheet);
   try {
     busy(true, "Henter skrifttyper…", 0);
-    const pdf = await buildPdf();
-    busy(true, "Gemmer PDF…", .96);
-    const bytes = await pdf.save({useObjectStreams:true});
-    const url = URL.createObjectURL(new Blob([bytes], {type:"application/pdf"}));
-    const a = document.createElement("a"); a.href = url; a.download = outFileName(); document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+    if (!withCover){
+      const pdf = await buildPdf();
+      busy(true, "Gemmer PDF…", .96);
+      saveBytes(await pdf.save({useObjectStreams:true}), outFileName(""));
+    } else {
+      // 1) dokumentet uden cover sheet
+      busy(true, "Samler dokumentet…", .05);
+      const a1 = await buildPdf({noCover:true});
+      busy(true, "Gemmer PDF…", .96);
+      saveBytes(await a1.save({useObjectStreams:true}), outFileName("uden"));
+      // 2) cover sheet'et for sig
+      await new Promise(r => setTimeout(r, 800));
+      busy(true, "Gemmer cover sheet…", .3);
+      const a2 = await buildPdf({sheetOnly:true});
+      saveBytes(await a2.save({useObjectStreams:true}), outFileName("sheet"));
+      // 3) det hele samlet med cover sheet forrest
+      await new Promise(r => setTimeout(r, 800));
+      busy(true, "Samler med cover sheet…", .4);
+      const a3 = await buildPdf();
+      busy(true, "Gemmer PDF…", .96);
+      saveBytes(await a3.save({useObjectStreams:true}), outFileName(""));
+      note(`Downloadede 3 filer: "${outFileName("uden")}", "${outFileName("sheet")}" og "${outFileName("")}".`);
+    }
   } catch(e){
     console.error(e); alert("Kunne ikke lave PDF'en: " + (e && e.message || e));
   } finally { busy(false); }
