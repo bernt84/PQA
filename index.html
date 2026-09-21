@@ -579,11 +579,22 @@ async function addFiles(list, forceSection=null){
     note(`${other.length} fil(er) i mappen er ikke PDF'er og blev sprunget over${lnk.length ? ` – heraf ${lnk.length} genvej(e), fx "${ex}". Læg selve PDF-filerne i mapperne, ikke genveje.` : `, fx "${ex}".`}`);
   }
   if (!pdfs.length){ if (!other.length) note("Der var ingen PDF-filer i det du valgte."); return; }
-  const tally = {placed:0, unplaced:0, mrb:0, other: other.length, lnk: lnk.length};
+  const tally = {placed:0, unplaced:0, mrb:0, other: other.length, lnk: lnk.length, outside: []};
+  // Har mappen sektionsmapper, er det dem der bestemmer. Filer udenfor (fx "Rod") tages ikke med.
+  let use = pdfs, structured = false;
+  if (forceSection === null){
+    const inFolder = pdfs.filter(x => (x.path||"").includes("/"));
+    structured = inFolder.some(x => detectSection(x.path, x.file.name, true) !== 0);
+    if (structured){
+      use = pdfs.filter(x => !(x.path||"").includes("/") || detectSection(x.path, x.file.name, true) !== 0);
+      tally.outside = pdfs.filter(x => !use.includes(x)).map(x => x.path.split("/").slice(1).join("/") || x.file.name);
+    }
+  }
   busy(true, "Læser filer…", 0);
   let done = 0;
-  for (const {file, path} of pdfs){
-    const secNo = forceSection ?? detectSection(path || file.name, file.name);
+  for (const {file, path} of use){
+    // flad mappe uden sektionsmapper: gæt ud fra filnavnet
+    const secNo = forceSection ?? (detectSection(path || file.name, file.name) || (!structured ? detectSection(file.name, file.name) : 0));
     const base = file.name.replace(/\.pdf$/i,"").trim().toLowerCase();
     if (state.sections.some(x => base === `${pos(x)}. ${x.name}`.toLowerCase() || (x.rule && base === `${x.rule}. ${SECTIONS[x.rule-1]}`.toLowerCase()))){
       state.skipped.push(file.name); done++; continue; // old merged section file
@@ -594,7 +605,7 @@ async function addFiles(list, forceSection=null){
       await keepBytes(slot); done++; continue;
     }
     if (allItems().concat(state.unsorted.items).some(it => !it.missing && it.fileName===file.name && it.size===file.size && it.secNo===secNo)){ done++; continue; }
-    busy(true, `Læser ${file.name}`, done/pdfs.length);
+    busy(true, `Læser ${file.name}`, done/use.length);
     const it = await analyse(file, secOf(secNo));
     if (isFinishedMrb(it)){ state.skipped.push(`${file.name} (færdig MRB, ${it.pages} s.)`); tally.mrb++; done++; continue; }
     await keepBytes(it);
@@ -607,10 +618,11 @@ async function addFiles(list, forceSection=null){
   autoMeta();
   busy(false);
   render();
-  if (pdfs.length > 1){
+  if (pdfs.length > 1 || tally.outside.length){
     const parts = [`${tally.placed} fil(er) lagt i sektioner`];
     if (tally.unplaced) parts.push(`${tally.unplaced} under "Ikke placeret"`);
     if (tally.mrb) parts.push(`${tally.mrb} færdig(e) MRB sprunget over`);
+    if (tally.outside.length) parts.push(`${tally.outside.length} fil(er) uden for sektionsmapperne ikke taget med (fx "${tally.outside[0]}")`);
     if (tally.lnk) parts.push(`${tally.lnk} genvej(e) sprunget over – læg selve PDF-filerne i mapperne`);
     else if (tally.other) parts.push(`${tally.other} fil(er) der ikke er PDF sprunget over`);
     note(parts.join(" · ") + ".");
@@ -920,7 +932,23 @@ document.addEventListener("pointercancel", () => { ptr = null; document.body.cla
 let pendingSection = null;
 $("btnFolder").onclick = () => { $("inFolder").value=""; $("inFolder").click(); };
 $("btnFiles").onclick = () => { $("inFiles").value=""; $("inFiles").click(); };
-$("inFolder").onchange = e => addFiles([...e.target.files].map(f=>({file:f, path:f.webkitRelativePath||f.name})));
+async function clearLoadedFiles(){
+  const all = [...allItems(), ...state.unsorted.items];
+  for (const it of all) if (it.key) { try { await idbDel("files", it.key); } catch(e){} }
+  state.sections.forEach(s => s.items = []); state.unsorted.items = []; state.skipped = [];
+}
+// En hel mappe = en bog. Ligger der allerede filer, spørg om de skal erstattes.
+async function askReplace(){
+  const n = allItems().length + state.unsorted.items.length;
+  if (!n) return;
+  if (confirm(`Der er allerede ${n} fil(er) indlæst.\n\nOK = erstat dem med indholdet af den valgte mappe\nAnnuller = læg de nye filer til`)) await clearLoadedFiles();
+}
+$("inFolder").onchange = async e => {
+  const list = [...e.target.files].map(f=>({file:f, path:f.webkitRelativePath||f.name}));
+  if (!list.length) return;
+  await askReplace();
+  addFiles(list);
+};
 $("inFiles").onchange = e => addFiles([...e.target.files].map(f=>({file:f, path:f.name})));
 $("inSection").onchange = e => addFiles([...e.target.files].map(f=>({file:f, path:f.name})), pendingSection);
 const drop = $("drop");
@@ -945,6 +973,7 @@ document.addEventListener("drop", async e => {
     if (hits.size >= 2) note(`Mappen dækker flere sektioner – filerne er fordelt efter mappenavnene i stedet for at ryge i "${secOf(target).name}".`);
     else { forced = target; if (files.some(f => f.path.includes("/"))) note(`Hele mappen er lagt i "${secOf(target).name}".`); }
   }
+  if (forced === null && files.some(f => f.path.includes("/"))) await askReplace();
   addFiles(files, forced);
 });
 /* ============ Bogmærkeoversigt ============ */
@@ -1125,7 +1154,13 @@ $("btnSuggest").onclick = () => { for (const s of state.sections) s.items.sort((
 $("btnReset").onclick = async () => {
   if (!confirm("Ryd alle filer og det der er gemt i browseren?")) return;
   state.sections.forEach(s=>s.items=[]); state.unsorted.items=[]; state.skipped=[];
+  const keep = coverSheet;                        // RWE-skabelonen er "ens hver gang" – den beholdes
   try { await idbClear("files"); await idbClear("state"); } catch(e){}
+  if (keep){
+    (keep.fields||[]).forEach(f => f.newValue = f.value);
+    if (keep.rev) keep.rev.rows.forEach(r => r.cells = (r.orig || r.cells).slice());
+    coverSheet = keep; await saveCover(); renderCoverFields();
+  }
   render();
 };
 
