@@ -110,6 +110,17 @@ main{max-width:1400px;margin:0 auto;padding:20px;display:grid;grid-template-colu
 .item.dropbefore{box-shadow:0 -3px 0 var(--lime)}
 .irow{display:flex;align-items:center;gap:6px}
 body.dragging-now{user-select:none;cursor:grabbing}
+.dragghost{position:fixed;left:0;top:0;z-index:300;pointer-events:none;display:flex;align-items:center;gap:10px;
+  min-width:240px;max-width:560px;padding:10px 14px;border-radius:var(--r);background:var(--panel);
+  border:1px solid var(--lime);box-shadow:0 18px 40px rgba(0,0,0,.6),0 0 0 4px rgba(184,224,74,.12);
+  font-weight:700;font-size:14px;color:var(--ink);transform:translate(-9999px,0) rotate(-1.5deg);transition:none}
+.dragghost .gnum{font-family:"Space Mono";background:var(--teal2);color:#fff;border-radius:6px;min-width:28px;text-align:center;padding:1px 6px;font-size:13px}
+.dragghost .gmeta{font-family:"Space Mono";font-weight:400;font-size:11px;color:var(--muted);margin-left:auto;white-space:nowrap}
+.dragghost .gt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sec.dragsrc,.item.dragsrc{outline:2px dashed var(--lime);outline-offset:-2px;background:rgba(184,224,74,.06)!important}
+.sec.dragsrc > *,.item.dragsrc > *{opacity:.35}
+body.dragging-sec .sec .secbody{display:none}
+body.dragging-sec .sec{transition:transform .12s ease}
 body.dragging-now .handle{cursor:grabbing}
 .handle{cursor:grab;touch-action:none;color:var(--dim);padding:0 6px;font-size:16px;line-height:1}
 .ititle{flex:1;min-width:0;background:transparent;border:1px solid transparent;border-radius:6px;padding:5px 7px;font-weight:600}
@@ -783,6 +794,7 @@ function render(){
   const pages = items.reduce((a,i)=>a+i.pages,0);
   const filled = state.sections.filter(s=>s.items.length).length;
   $("stats").innerHTML = `<span><b>${items.length}</b> filer</span><span><b>${pages}</b> sider</span><span><b>${filled}</b>/${state.sections.length} sektioner</span>`;
+  try { if (ptr) markDragSrc(); } catch(e){}
   scheduleCover(); saveSoon();
 }
 function secHTML(s, isUnsorted){
@@ -894,22 +906,66 @@ list.addEventListener("change", e => {
   }
 });
 /* ---- flyt med musen (pointer-baseret, virker også på touch) ---- */
-let ptr = null;
+let ptr = null, ghost = null, dragY = 0, dragTimer = null;
+function markDragSrc(){
+  document.querySelectorAll(".dragsrc").forEach(x => x.classList.remove("dragsrc"));
+  if (!ptr) return;
+  const el = ptr.type === "sec" ? document.querySelector(`.sec[data-sec="${ptr.id}"]`) : document.querySelector(`[data-item="${ptr.id}"]`);
+  if (el) el.classList.add("dragsrc");
+  if (ghost && ptr.type === "sec"){ const g = ghost.querySelector(".gnum"); if (g) g.textContent = pos(secOf(ptr.id)); }
+}
+function makeGhost(e){
+  ghost = document.createElement("div"); ghost.className = "dragghost";
+  if (ptr.type === "sec"){
+    const sc = secOf(ptr.id);
+    ghost.innerHTML = `<span class="gnum">${pos(sc)}</span><span class="gt">${esc(sc.name)}</span><span class="gmeta">${sc.items.length} filer</span>`;
+  } else {
+    const it = findItem(ptr.id).item;
+    ghost.innerHTML = `<span>☰</span><span class="gt">${esc(it.title || it.fileName)}</span><span class="gmeta">${it.pages} s.</span>`;
+  }
+  document.body.appendChild(ghost); moveGhost(e);
+}
+function moveGhost(e){ if (ghost) ghost.style.transform = `translate(${e.clientX + 16}px, ${e.clientY - 22}px) rotate(-1.5deg)`; }
+function endDrag(){
+  if (!ptr) return;
+  ptr = null;
+  if (ghost){ ghost.remove(); ghost = null; }
+  clearInterval(dragTimer); dragTimer = null;
+  document.body.classList.remove("dragging-now", "dragging-sec");
+  render();
+}
 list.addEventListener("pointerdown", e => {
   const h = e.target.closest(".handle"); if (!h || e.button) return;
   e.preventDefault();
   ptr = h.dataset.secdrag ? {type:"sec", id:+h.dataset.secdrag} : {type:"item", id:+h.closest("[data-item]").dataset.item};
   document.body.classList.add("dragging-now");
+  if (ptr.type === "sec"){
+    // fold alle sektioner sammen mens der trækkes, så listen er kort og overskuelig
+    const r0 = h.closest(".sec").getBoundingClientRect();
+    document.body.classList.add("dragging-sec");
+    const r1 = h.closest(".sec").getBoundingClientRect();
+    window.scrollBy(0, r1.top - r0.top);
+  }
+  makeGhost(e); markDragSrc();
+  dragY = e.clientY;
+  dragTimer = setInterval(() => {            // rul automatisk ved kanten af vinduet
+    const edge = 80, h2 = window.innerHeight;
+    if (dragY < edge) window.scrollBy(0, -Math.ceil((edge - dragY) / 4));
+    else if (dragY > h2 - edge) window.scrollBy(0, Math.ceil((dragY - (h2 - edge)) / 4));
+  }, 16);
 });
 document.addEventListener("pointermove", e => {
   if (!ptr) return;
   e.preventDefault();
+  moveGhost(e); dragY = e.clientY;
   const el = document.elementFromPoint(e.clientX, e.clientY); if (!el || !el.closest) return;
   if (ptr.type === "sec"){
     const over = el.closest(".sec[data-sec]");
     if (!over || +over.dataset.sec === ptr.id || +over.dataset.sec === 0) return;
     const from = state.sections.findIndex(x => x.no === ptr.id), to = state.sections.findIndex(x => x.no === +over.dataset.sec);
     if (from < 0 || to < 0) return;
+    const rr = over.getBoundingClientRect(), mid = rr.top + rr.height / 2;
+    if ((to > from && e.clientY < mid) || (to < from && e.clientY > mid)) return;
     const [m] = state.sections.splice(from, 1); state.sections.splice(to, 0, m); saveLayout(); render();
     return;
   }
@@ -926,8 +982,9 @@ document.addEventListener("pointermove", e => {
     f.sec.items.splice(f.idx, 1); to.items.push(f.item); f.item.secNo = to.no; to.open = true; render();
   }
 }, {passive:false});
-document.addEventListener("pointerup", () => { if (ptr){ ptr = null; document.body.classList.remove("dragging-now"); render(); } });
-document.addEventListener("pointercancel", () => { ptr = null; document.body.classList.remove("dragging-now"); });
+document.addEventListener("pointerup", endDrag);
+document.addEventListener("pointercancel", endDrag);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && ptr) endDrag(); });
 
 let pendingSection = null;
 $("btnFolder").onclick = () => { $("inFolder").value=""; $("inFolder").click(); };
