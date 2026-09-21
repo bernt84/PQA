@@ -90,10 +90,12 @@ main{max-width:1400px;margin:0 auto;padding:20px;display:grid;grid-template-colu
 .toolbar{display:flex;gap:8px;align-items:center;margin:16px 0 10px;flex-wrap:wrap}
 .toolbar .hint{color:var(--muted);font-size:12px}
 .sec{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
-.sec.empty{opacity:.75}
+.sec.empty:not(.unsorted){border-color:rgba(240,180,41,.45);background:linear-gradient(rgba(240,180,41,.07),rgba(240,180,41,.07)),var(--panel)}
+.sec.empty:not(.unsorted) .sechead .name{color:#f3d58a}
 .sechead{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;user-select:none}
 .sechead .num{font-family:"Space Mono";font-weight:700;background:var(--teal2);color:#fff;border-radius:6px;min-width:30px;text-align:center;padding:2px 6px}
-.sec.empty .num{background:var(--line2);color:var(--muted)}
+.sec.empty .num{background:rgba(240,180,41,.18);color:var(--amber)}
+.sec.empty:not(.unsorted) .empty-note{color:var(--amber);opacity:.85}
 .sechead .name{font-weight:700;font-size:15px}
 .sechead .meta{font-family:"Space Mono";font-size:11px;color:var(--muted)}
 .sechead .chev{margin-left:auto;color:var(--muted);transition:transform .15s}
@@ -757,7 +759,7 @@ function secHTML(s, isUnsorted){
         <button class="icon" data-act="secdown" data-sec="${s.no}" title="Ryk sektion ned">↓</button>
         <button class="icon" data-act="secdel" data-sec="${s.no}" title="Slet sektion">🗑</button>`}
       <span class="chev">▾</span></div>`;
-  const opts = (cur) => `<option value="">Flyt til…</option>` + state.sections.map(x=>`<option value="${x.no}" ${x.no===cur?"disabled":""}>${pos(x)}. ${esc(x.name)}</option>`).join("");
+  const moveOpts = (cur) => `<option value="">Flyt til…</option>` + state.sections.map(x=>`<option value="${x.no}" ${x.no===cur?"disabled":""}>${pos(x)}. ${esc(x.name)}</option>`).join("");
   const body = s.items.length ? s.items.map(it => {
     const warn = it.errors.length ? `<span class="flag err">${esc(it.errors[0])}</span>` : (it.encrypted ? `<span class="flag warn">krypteret</span>` : "");
     const subs = it.subs.map((sb,k)=>`<div class="sub" style="margin-left:${(sb.depth-1)*16}px">
@@ -773,7 +775,7 @@ function secHTML(s, isUnsorted){
         <button class="icon" data-act="prev" data-id="${it.id}" title="Vis og drej sider">🔍</button>
         <button class="icon" data-act="up" data-id="${it.id}" title="Op">↑</button>
         <button class="icon" data-act="down" data-id="${it.id}" title="Ned">↓</button>
-        <select class="movesel" data-move="${it.id}">${opts(s.no)}</select>
+        <select class="movesel" data-move="${it.id}">${moveOpts(s.no)}</select>
         <button class="icon" data-act="addsub" data-id="${it.id}" title="Tilføj underbogmærke">＋</button>
         <button class="icon" data-act="del" data-id="${it.id}" title="Fjern fil">🗑</button>
       </div>
@@ -784,7 +786,7 @@ function secHTML(s, isUnsorted){
       ${(it.checks||[]).map(c=>`<div class="chk-warn">⚠ ${esc(c)}</div>`).join("")}
       ${it.subs.length ? `<div class="subs">${subs}</div>` : ""}
     </div>`;
-  }).join("") : `<div class="empty-note">Ingen filer – vises som "Not included" på forsiden.</div>`;
+  }).join("") : `<div class="empty-note">Ingen filer – vises som "${opts.dividers && opts.dividersEmpty ? "Not applicable" : "Not included"}" på forsiden.</div>`;
   const add = isUnsorted ? "" : `<div style="margin-top:6px"><button class="btn sm ghost" data-act="addto" data-sec="${s.no}">＋ Tilføj filer</button></div>`;
   return `<div class="sec ${s.items.length?"":"empty"} ${s.open?"":"closed"} ${isUnsorted?"unsorted":""}" data-sec="${s.no}">${head}
     <div class="secbody" data-body="${s.no}">${body}${add}</div></div>`;
