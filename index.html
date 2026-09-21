@@ -565,12 +565,14 @@ function detectSection(path, fileName, probe){
     }
     if (sec) return sec.no;
   }
-  for (const [r, re] of KEYWORDS) if (re.test(fileName)){ const sec = byRule(r); if (sec) return sec.no; }
+  if (!path.includes("/"))       // løse filer: gæt ud fra filnavnet. I en mappe bestemmer mappen.
+    for (const [r, re] of KEYWORDS) if (re.test(fileName)){ const sec = byRule(r); if (sec) return sec.no; }
   return 0;
 }
 async function addFiles(list, forceSection=null){
   const pdfs = list.filter(x => /\.pdf$/i.test(x.file.name));
   if (!pdfs.length) return;
+  const tally = {placed:0, unplaced:0, mrb:0};
   busy(true, "Læser filer…", 0);
   let done = 0;
   for (const {file, path} of pdfs){
@@ -587,8 +589,10 @@ async function addFiles(list, forceSection=null){
     if (allItems().concat(state.unsorted.items).some(it => !it.missing && it.fileName===file.name && it.size===file.size && it.secNo===secNo)){ done++; continue; }
     busy(true, `Læser ${file.name}`, done/pdfs.length);
     const it = await analyse(file, secOf(secNo));
+    if (isFinishedMrb(it)){ state.skipped.push(`${file.name} (færdig MRB, ${it.pages} s.)`); tally.mrb++; done++; continue; }
     await keepBytes(it);
     secOf(secNo).items.push(it);
+    if (secNo) tally.placed++; else tally.unplaced++;
     done++;
   }
   for (const s of state.sections) s.items.sort((a,b)=>cmpKey(sortKey(s.rule,a), sortKey(s.rule,b)));
@@ -596,6 +600,19 @@ async function addFiles(list, forceSection=null){
   autoMeta();
   busy(false);
   render();
+  if (pdfs.length > 1){
+    const parts = [`${tally.placed} fil(er) lagt i sektioner`];
+    if (tally.unplaced) parts.push(`${tally.unplaced} under "Ikke placeret"`);
+    if (tally.mrb) parts.push(`${tally.mrb} færdig(e) MRB sprunget over`);
+    note(parts.join(" · ") + ".");
+  }
+}
+// En færdig samlet MRB (fra appen eller scriptet) har "Document Index" og nummererede sektioner i bogmærkerne
+function isFinishedMrb(it){
+  const t = (it.subs || []).map(x => (x.title || "").trim());
+  const hasIndex = t.some(x => /^document index$/i.test(x));
+  const secs = t.filter(x => /^\d{1,2}\.\s+\S/.test(x)).length;
+  return hasIndex && secs >= 3;
 }
 async function analyse(file, sec){
   const secNo = sec.no, rule = sec.rule;
@@ -1946,7 +1963,7 @@ function validate(){
   if (!pqaCore()) issues.push({lvl:"err", msg:"PQA navn mangler (forsiden og filnavnet)."});
   for (const k of ["client","project","package","scope"]) if (!meta[k]) issues.push({lvl:"warn", msg:`Forsidefeltet "${k[0].toUpperCase()+k.slice(1)}" er tomt.`});
   if (state.unsorted.items.length) issues.push({lvl:"warn", msg:`${state.unsorted.items.length} fil(er) er ikke placeret i en sektion og kommer ikke med.`, where: state.unsorted.items.map(i=>i.fileName).join(", ")});
-  if (state.skipped.length) issues.push({lvl:"info", msg:`Gamle samlede sektionsfiler blev sprunget over.`, where: state.skipped.join(", ")});
+  if (state.skipped.length) issues.push({lvl:"info", msg:`${state.skipped.length} tidligere samlet(e) fil(er) blev sprunget over – de er output, ikke dokumenter der skal med.`, where: state.skipped.join(", ")});
   for (const s of state.sections){
     const where = `${pos(s)}. ${s.name}`;
     if (!s.name.trim()) issues.push({lvl:"err", msg:"Sektionen har intet navn.", where:`Sektion ${pos(s)}`});
