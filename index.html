@@ -571,8 +571,15 @@ function detectSection(path, fileName, probe){
 }
 async function addFiles(list, forceSection=null){
   const pdfs = list.filter(x => /\.pdf$/i.test(x.file.name));
-  if (!pdfs.length) return;
-  const tally = {placed:0, unplaced:0, mrb:0};
+  // filer i mapper som ikke er PDF (fx genveje "….pdf.lnk" eller Word-filer) – sig det, i stedet for at tie
+  const other = list.filter(x => !/\.pdf$/i.test(x.file.name) && !/^(thumbs\.db|desktop\.ini|\.ds_store)$/i.test(x.file.name) && (x.path||"").includes("/"));
+  const lnk = other.filter(x => /\.lnk$/i.test(x.file.name));
+  if (other.length){
+    const ex = (lnk[0] || other[0]).file.name;
+    note(`${other.length} fil(er) i mappen er ikke PDF'er og blev sprunget over${lnk.length ? ` – heraf ${lnk.length} genvej(e), fx "${ex}". Læg selve PDF-filerne i mapperne, ikke genveje.` : `, fx "${ex}".`}`);
+  }
+  if (!pdfs.length){ if (!other.length) note("Der var ingen PDF-filer i det du valgte."); return; }
+  const tally = {placed:0, unplaced:0, mrb:0, other: other.length, lnk: lnk.length};
   busy(true, "Læser filer…", 0);
   let done = 0;
   for (const {file, path} of pdfs){
@@ -604,6 +611,8 @@ async function addFiles(list, forceSection=null){
     const parts = [`${tally.placed} fil(er) lagt i sektioner`];
     if (tally.unplaced) parts.push(`${tally.unplaced} under "Ikke placeret"`);
     if (tally.mrb) parts.push(`${tally.mrb} færdig(e) MRB sprunget over`);
+    if (tally.lnk) parts.push(`${tally.lnk} genvej(e) sprunget over – læg selve PDF-filerne i mapperne`);
+    else if (tally.other) parts.push(`${tally.other} fil(er) der ikke er PDF sprunget over`);
     note(parts.join(" · ") + ".");
   }
 }
